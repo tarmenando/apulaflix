@@ -1025,7 +1025,7 @@ async function playEpisode(episodeNum, forceProxy = false) {
     } else if (platform === "lookseries") {
         sParams = { vod_id: drama.id, episode: episodeNum };
     } else if (platform === "vigloo") {
-        sParams = { season_id: drama.id, episode_num: episodeNum };
+        sParams = { season_id: drama.id, program_id: drama.id, episode_num: episodeNum };
     } else if (platform === "honey") {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
     } else if (platform === "goodshort") {
@@ -1064,7 +1064,7 @@ async function playEpisode(episodeNum, forceProxy = false) {
                 videoUrl = sanitizeMediaUrl(videoUrl, platform);
 
                 const isM3u8 = videoUrl.includes(".m3u8") || videoUrl.includes("/proxy_stream");
-                const isDirectMp4 = videoUrl.includes(".mp4") || videoUrl.includes("proxy_video") || videoUrl.includes("whatbox.ca");
+                const isDirectMp4 = (videoUrl.includes(".mp4") || videoUrl.includes("whatbox.ca")) && !videoUrl.includes(".m3u8");
 
                 if (isM3u8 && !isDirectMp4) {
                     streamType = "hls";
