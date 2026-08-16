@@ -318,9 +318,18 @@ const elements = {
     toast: document.getElementById('toast')
 };
 
-// Complete URL Sanitizer - Routes Whatbox & HTTP media through authenticated HTTPS proxies
+// Complete URL Sanitizer - Routes Whatbox & HTTP media through authenticated HTTPS proxies (Idempotent)
 function sanitizeMediaUrl(url, platform = 'donghuaqueen') {
     if (!url || typeof url !== 'string') return '';
+    
+    // Guard: Prevent recursive / nested proxy wrapping
+    if (url.includes('/api/donghuaqueen/proxy_video') ||
+        url.includes('/api/dramaqueen/proxy_video') ||
+        url.includes('/api/lookseries/proxy') ||
+        url.includes('/api/proxy_stream')) {
+        return url;
+    }
+
     if (url.startsWith('http://') || url.includes('whatbox.ca')) {
         if (platform === 'lookseries' || url.includes('lookseries')) {
             return `https://redmi.nunodrama.my.id/api/lookseries/proxy?url=${encodeURIComponent(url)}`;
