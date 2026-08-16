@@ -1,13 +1,11 @@
 /**
  * APULA-FLIX - HIGH PERFORMANCE CLIENT-SIDE STREAMING CONTROLLER
- * Primary Source: https://nunodrama.my.id (Encrypted Caddy Gateway)
- * Backup Source:  https://redmi.nunodrama.my.id (Direct Fallback)
+ * Primary Engine: Serverless Edge Gateway -> https://nunodrama.my.id (Bearer Authenticated)
+ * Backup Engine:  Direct Fallback -> https://redmi.nunodrama.my.id (CORS Open)
  */
 
-const PRIMARY_API = "https://nunodrama.my.id";
 const BACKUP_API  = "https://redmi.nunodrama.my.id";
-const API_TOKEN   = "a3VjaW5nIGthbXB1bmc="; // Base64 token for nunodrama.my.id
-const DECRYPT_KEY = "Nuno-secret";          // AES-256 Passphrase for payload decryption
+const DECRYPT_KEY = "Nuno-secret"; // AES-256 Passphrase for payload decryption
 
 // Safe SVG Data URI with zero double quotes to prevent breaking HTML attributes
 const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22450%22%20viewBox%3D%220%200%20300%20450%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23222222%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23111111%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22300%22%20height%3D%22450%22%20fill%3D%22url(%23g)%22%2F%3E%3Ccircle%20cx%3D%22150%22%20cy%3D%22180%22%20r%3D%2236%22%20fill%3D%22%23E50914%22%20opacity%3D%220.85%22%2F%3E%3Cpolygon%20points%3D%22144%2C166%20164%2C180%20144%2C194%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%22150%22%20y%3D%22250%22%20fill%3D%22%23ffffff%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20font-weight%3D%22bold%22%20text-anchor%3D%22middle%22%3EAPULA-FLIX%3C%2Ftext%3E%3Ctext%20x%3D%22150%22%20y%3D%22275%22%20fill%3D%22%23888888%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20text-anchor%3D%22middle%22%3EStreaming%3C%2Ftext%3E%3C%2Fsvg%3E";
@@ -706,26 +704,21 @@ function normalizeCard(item, platformId) {
     };
 }
 
-// Resilient API Fetch with Primary (nunodrama.my.id) -> Backup (redmi) Failover
+// Resilient API Fetch (100% CORS Clean):
+// 1. Calls same-origin Edge Gateway (/api/...) -> proxies to nunodrama.my.id with Bearer token & failover
+// 2. Direct fallback to redmi.nunodrama.my.id (Open CORS)
 async function apiFetch(endpoint, params = {}) {
     const q = new URLSearchParams(params).toString();
     const queryStr = q ? '?' + q : '';
 
-    const authHeaders = {
-        'Authorization': `Bearer ${API_TOKEN}`,
-        'x-api-token': API_TOKEN,
-        'Accept': 'application/json'
-    };
-
-    // 1. Try Primary Server (https://nunodrama.my.id)
+    // 1. Primary: Route via same-origin Cloudflare Edge Gateway (Zero CORS Block)
     try {
-        const primaryUrl = `${PRIMARY_API}${endpoint}${queryStr}`;
+        const edgeUrl = `${endpoint}${queryStr}`;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 4500);
+        const timeout = setTimeout(() => controller.abort(), 5000);
 
-        const resp = await fetch(primaryUrl, {
-            headers: authHeaders,
-            mode: 'cors',
+        const resp = await fetch(edgeUrl, {
+            headers: { 'Accept': 'application/json' },
             signal: controller.signal
         });
         clearTimeout(timeout);
@@ -738,14 +731,14 @@ async function apiFetch(endpoint, params = {}) {
             return resData;
         }
     } catch (e) {
-        // Fall through to backup
+        // Fallback to direct CORS backup
     }
 
-    // 2. Try Backup Server (https://redmi.nunodrama.my.id)
+    // 2. Backup Direct Fallback: redmi.nunodrama.my.id (CORS Open)
     try {
         const backupUrl = `${BACKUP_API}${endpoint}${queryStr}`;
         const controller2 = new AbortController();
-        const timeout2 = setTimeout(() => controller2.abort(), 4500);
+        const timeout2 = setTimeout(() => controller2.abort(), 5000);
 
         const bResp = await fetch(backupUrl, {
             mode: 'cors',
@@ -761,18 +754,6 @@ async function apiFetch(endpoint, params = {}) {
             return resData;
         }
     } catch (e) {}
-
-    // 3. Try Local Serverless Edge Proxy (/api/...)
-    try {
-        const localResp = await fetch(endpoint + queryStr);
-        if (localResp.ok) {
-            let resData = await localResp.json();
-            if (resData && typeof resData === 'object' && typeof resData.data === 'string' && resData.data.startsWith('U2FsdGVk')) {
-                resData.data = decryptNunoData(resData.data);
-            }
-            return resData;
-        }
-    } catch (err) {}
 
     return null;
 }
