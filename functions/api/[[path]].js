@@ -12,6 +12,20 @@ const DEFAULT_HEADERS = {
 
 const PLATFORMS_CONFIG = [
     {
+        id: "sodareels",
+        name: "SodaReels",
+        badge: "250+ Drama HD",
+        icon: "🥤",
+        endpoints: {
+            foryou: "/api/sodareels/foryou",
+            trending: "/api/sodareels/foryou",
+            search: "/api/sodareels/search",
+            detail: "/api/sodareels/detail",
+            allepisode: "/api/sodareels/allepisode",
+            stream: "/api/sodareels/stream"
+        }
+    },
+    {
         id: "dramawave",
         name: "DramaWave",
         badge: "Popular (HLS)",
@@ -92,6 +106,34 @@ const PLATFORMS_CONFIG = [
         }
     },
     {
+        id: "mydrama",
+        name: "MyDrama",
+        badge: "Romance (HLS)",
+        icon: "💖",
+        endpoints: {
+            foryou: "/api/mydrama/foryou",
+            trending: "/api/mydrama/foryou",
+            search: "/api/mydrama/search",
+            detail: "/api/mydrama/detail",
+            allepisode: "/api/mydrama/allepisode",
+            stream: "/api/mydrama/stream"
+        }
+    },
+    {
+        id: "minishort",
+        name: "MiniShort",
+        badge: "Mini Series (HLS)",
+        icon: "📺",
+        endpoints: {
+            foryou: "/api/minishort/foryou",
+            trending: "/api/minishort/foryou",
+            search: "/api/minishort/search",
+            detail: "/api/minishort/detail",
+            allepisode: "/api/minishort/allepisode",
+            stream: "/api/minishort/stream"
+        }
+    },
+    {
         id: "goodshort",
         name: "GoodShort",
         badge: "Top Picks",
@@ -103,6 +145,20 @@ const PLATFORMS_CONFIG = [
             detail: "/api/goodshort/detail",
             allepisode: "/api/goodshort/allepisode",
             stream: "/api/goodshort/stream"
+        }
+    },
+    {
+        id: "shorten",
+        name: "ShortEn",
+        badge: "Viral Shorts",
+        icon: "🔥",
+        endpoints: {
+            foryou: "/api/shorten/foryou",
+            trending: "/api/shorten/trending",
+            search: "/api/shorten/search",
+            detail: "/api/shorten/detail",
+            allepisode: "/api/shorten/allepisode",
+            stream: "/api/shorten/stream"
         }
     },
     {
@@ -134,17 +190,31 @@ const PLATFORMS_CONFIG = [
         }
     },
     {
-        id: "netshort",
-        name: "NetShort",
-        badge: "Sulih Suara",
-        icon: "⚡",
+        id: "dotdrama",
+        name: "DotDrama",
+        badge: "HD Series",
+        icon: "✨",
         endpoints: {
-            foryou: "/api/netshort/foryou",
-            trending: "/api/netshort/foryou",
-            search: "/api/netshort/search",
-            detail: "/api/netshort/detail",
-            allepisode: "/api/netshort/allepisode",
-            stream: "/api/netshort/stream"
+            foryou: "/api/dotdrama/foryou",
+            trending: "/api/dotdrama/foryou",
+            search: "/api/dotdrama/search",
+            detail: "/api/dotdrama/detail",
+            allepisode: "/api/dotdrama/allepisode",
+            stream: "/api/dotdrama/stream"
+        }
+    },
+    {
+        id: "soreel",
+        name: "SoReel",
+        badge: "Short Romance",
+        icon: "🌹",
+        endpoints: {
+            foryou: "/api/soreel/foryou",
+            trending: "/api/soreel/ranking",
+            search: "/api/soreel/search",
+            detail: "/api/soreel/detail",
+            allepisode: "/api/soreel/allepisode",
+            stream: "/api/soreel/stream"
         }
     },
     {
@@ -255,11 +325,14 @@ function normalizeCard(item, platformId) {
         item.dramaName || "Untitled Drama"
     );
     
-    const cover = (
+    let cover = (
         item.cover || item.cover_url || item.image || item.thumb ||
         item.poster || item.img || item.img_landscape_url || item.vod_pic ||
         item.horizontal_cover || item.vertical_cover || ""
     );
+    if (cover && cover.startsWith('http://')) {
+        cover = cover.replace('http://', 'https://');
+    }
     
     const desc = (
         item.description || item.synopsis || item.intro ||
@@ -347,7 +420,7 @@ export async function onRequest(context) {
         if (platform !== "all" && PLATFORM_MAP[platform]) {
             targetPlatforms = [platform];
         } else {
-            targetPlatforms = ["dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "goodshort", "vigloo", "honey", "fundrama", "bibishort"];
+            targetPlatforms = ["sodareels", "dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "minishort", "goodshort", "shorten", "vigloo", "honey", "dotdrama", "soreel", "fundrama", "bibishort"];
         }
 
         const promises = targetPlatforms.map(async (pId) => {
@@ -385,194 +458,7 @@ export async function onRequest(context) {
         }, 200, { "Cache-Control": "public, max-age=300" });
     }
 
-    // 4. Route: /api/search
-    if (pathString === "search") {
-        const keyword = url.searchParams.get("keyword") || "";
-        const platform = url.searchParams.get("platform") || "all";
-        if (!keyword) {
-            return jsonResponse({ success: true, count: 0, data: [] });
-        }
-
-        let targetPlatforms = [];
-        if (platform !== "all" && PLATFORM_MAP[platform]) {
-            targetPlatforms = [platform];
-        } else {
-            targetPlatforms = ["dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "goodshort", "honey", "fundrama"];
-        }
-
-        const promises = targetPlatforms.map(async (pId) => {
-            const pCfg = PLATFORM_MAP[pId];
-            if (!pCfg || !pCfg.endpoints || !pCfg.endpoints.search) return [];
-            const data = await fetchUpstream(pCfg.endpoints.search, { keyword, page: 1 });
-            const rawItems = extractList(data);
-            return rawItems.map(item => normalizeCard(item, pId));
-        });
-
-        const settled = await Promise.allSettled(promises);
-        const allCards = [];
-        for (const res of settled) {
-            if (res.status === "fulfilled" && Array.isArray(res.value)) {
-                allCards.push(...res.value);
-            }
-        }
-
-        return jsonResponse({
-            success: true,
-            keyword,
-            count: allCards.length,
-            data: allCards
-        });
-    }
-
-    // 5. Route: /api/detail
-    if (pathString === "detail") {
-        const platform = url.searchParams.get("platform");
-        const id = url.searchParams.get("id");
-        if (!platform || !id || !PLATFORM_MAP[platform]) {
-            return jsonResponse({ success: false, message: "Invalid platform or id" }, 400);
-        }
-
-        const pCfg = PLATFORM_MAP[platform];
-        const detailEp = pCfg.endpoints.detail;
-        const allepEp = pCfg.endpoints.allepisode;
-
-        let paramKey = "book_id";
-        if (platform === "lookseries") paramKey = "vod_id";
-        else if (platform === "vigloo") paramKey = "video_id";
-
-        const [detailData, epData] = await Promise.all([
-            detailEp ? fetchUpstream(detailEp, { [paramKey]: id }) : null,
-            allepEp ? fetchUpstream(allepEp, { [paramKey]: id }) : null
-        ]);
-
-        let rawEpisodes = extractList(epData) || extractList(detailData);
-        const episodes = [];
-        if (Array.isArray(rawEpisodes) && rawEpisodes.length > 0) {
-            rawEpisodes.forEach((ep, idx) => {
-                const epNum = ep.chapterIndex || ep.number_episode || ep.episode || ep.episode_num || ep.index || (idx + 1);
-                const epId = String(ep.chapterId || ep.chapter_id || ep.episode_id || ep.id || ep.eid || ep.nid || epNum);
-                const epTitle = ep.chapterName || ep.title || ep.name || `Episode ${epNum}`;
-                const directUrl = ep.link_720 || ep.link720_pro || ep.link720_a || ep.video_url || null;
-                episodes.push({
-                    episode_num: epNum,
-                    episode_id: epId,
-                    title: epTitle,
-                    direct_url: directUrl
-                });
-            });
-        }
-
-        if (episodes.length === 0) {
-            for (let i = 1; i <= 30; i++) {
-                episodes.push({
-                    episode_num: i,
-                    episode_id: String(i),
-                    title: `Episode ${i}`,
-                    direct_url: null
-                });
-            }
-        }
-
-        const card = normalizeCard((detailData && detailData.data) || detailData || {}, platform);
-        if (!card.id) card.id = id;
-
-        return jsonResponse({
-            success: true,
-            drama: card,
-            episodes
-        });
-    }
-
-    // 6. Route: /api/stream
-    if (pathString === "stream") {
-        const platform = url.searchParams.get("platform");
-        const id = url.searchParams.get("id");
-        const episode = parseInt(url.searchParams.get("episode") || "1");
-        const episodeId = url.searchParams.get("episode_id");
-
-        if (!platform || !id || !PLATFORM_MAP[platform]) {
-            return jsonResponse({ success: false, message: "Invalid platform or id" }, 400);
-        }
-
-        const pCfg = PLATFORM_MAP[platform];
-        const streamEp = pCfg.endpoints.stream;
-        if (!streamEp) {
-            return jsonResponse({ success: false, message: "No stream endpoint" }, 404);
-        }
-
-        let sParams = {};
-        if (platform === "dramabox") {
-            sParams = { book_id: id, episode_num: episode };
-        } else if (platform === "dramawave") {
-            sParams = { book_id: id, chapter_id: episodeId || String(episode) };
-        } else if (platform === "lookseries") {
-            sParams = { vod_id: id, episode };
-        } else if (platform === "vigloo") {
-            sParams = { season_id: id, episode_num: episode };
-        } else if (platform === "honey") {
-            sParams = { book_id: id, chapter_id: episodeId || String(episode) };
-        } else if (platform === "goodshort") {
-            sParams = { book_id: id, episode_index: episode, episode_id: episodeId || String(episode) };
-        } else if (["dramaqueen", "donghuaqueen", "fundrama"].includes(platform)) {
-            sParams = { book_id: id, episode };
-        } else {
-            sParams = { book_id: id, episode };
-        }
-
-        const streamData = await fetchUpstream(streamEp, sParams);
-        if (!streamData) {
-            return jsonResponse({ success: false, message: "Failed to fetch stream from source" }, 502);
-        }
-
-        let videoUrl = null;
-        let streamType = "mp4";
-        let subtitles = [];
-
-        if (typeof streamData === "object" && streamData !== null) {
-            const d = streamData.data || streamData;
-            videoUrl = (
-                d.playUrl || d.url || d.videoUrl ||
-                d.stream_url || d.video_url || d.m3u8 ||
-                d.video_url_raw || d.link_720 || d.link720_pro ||
-                d.encryptUrl || d.play_url || d.proxyUrl
-            );
-            if (!videoUrl && Array.isArray(d.sources) && d.sources.length > 0) {
-                videoUrl = d.sources[0].url;
-            }
-            if (!videoUrl && Array.isArray(d.qualities) && d.qualities.length > 0) {
-                videoUrl = d.qualities[0].url;
-            }
-            if (Array.isArray(d.subtitles)) {
-                subtitles = d.subtitles;
-            }
-        } else if (typeof streamData === "string" && streamData.startsWith("http")) {
-            videoUrl = streamData;
-        }
-
-        if (!videoUrl) {
-            return jsonResponse({
-                success: false,
-                raw: streamData,
-                message: "Stream URL not available"
-            });
-        }
-
-        if (videoUrl.includes(".m3u8")) {
-            streamType = "hls";
-        }
-
-        return jsonResponse({
-            success: true,
-            video_url: videoUrl,
-            stream_type: streamType,
-            subtitles,
-            platform,
-            id,
-            episode
-        });
-    }
-
-    // 7. Route: /api/proxy_stream
+    // 4. Route: /api/proxy_stream - Universal CORS proxy & HLS rewriter
     if (pathString === "proxy_stream") {
         const streamUrl = url.searchParams.get("url");
         if (!streamUrl) {
@@ -586,9 +472,45 @@ export async function onRequest(context) {
         }
 
         try {
-            const mediaResp = await fetch(streamUrl, {
-                headers: forwardHeaders
-            });
+            const mediaResp = await fetch(streamUrl, { headers: forwardHeaders });
+            const contentType = mediaResp.headers.get("Content-Type") || "";
+
+            // If it is an HLS .m3u8 playlist, rewrite relative URLs to absolute proxy URLs
+            if (streamUrl.includes(".m3u8") || contentType.includes("mpegurl") || contentType.includes("application/x-mpegURL")) {
+                const m3u8Text = await mediaResp.text();
+                const baseUrl = streamUrl.substring(0, streamUrl.lastIndexOf('/') + 1);
+
+                const lines = m3u8Text.split('\n');
+                const rewrittenLines = lines.map(line => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return line;
+                    if (trimmed.startsWith('#')) {
+                        return trimmed.replace(/URI="([^"]+)"/g, (match, relUri) => {
+                            if (!relUri.startsWith('http')) {
+                                const abs = new URL(relUri, baseUrl).href;
+                                return `URI="/api/proxy_stream?url=${encodeURIComponent(abs)}"`;
+                            }
+                            return match;
+                        });
+                    }
+                    if (!trimmed.startsWith('http')) {
+                        const abs = new URL(trimmed, baseUrl).href;
+                        return `/api/proxy_stream?url=${encodeURIComponent(abs)}`;
+                    }
+                    return line;
+                });
+
+                return new Response(rewrittenLines.join('\n'), {
+                    status: 200,
+                    headers: {
+                        "Content-Type": "application/vnd.apple.mpegurl",
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                        "Access-Control-Allow-Headers": "*",
+                        "Cache-Control": "public, max-age=180"
+                    }
+                });
+            }
 
             const resHeaders = new Headers(mediaResp.headers);
             resHeaders.set("Access-Control-Allow-Origin", "*");
@@ -605,7 +527,7 @@ export async function onRequest(context) {
         }
     }
 
-    // 8. Fallback: Direct proxy for any other API route
+    // 5. Fallback: Direct proxy for any other API route
     const targetUrl = `${UPSTREAM_BASE}/api/${pathString}${url.search}`;
     const directHeaders = new Headers(request.headers);
     directHeaders.set("User-Agent", DEFAULT_HEADERS["User-Agent"]);

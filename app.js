@@ -965,6 +965,7 @@ async function playEpisode(episodeNum, forceProxy = false) {
     elements.videoLoading.classList.add('show');
     elements.videoLoadingText.textContent = `Mengambil video Ep ${episodeNum}...`;
 
+    // Completely tear down and detach any active Hls.js instance
     if (STATE.hlsInstance) {
         STATE.hlsInstance.destroy();
         STATE.hlsInstance = null;
@@ -977,7 +978,7 @@ async function playEpisode(episodeNum, forceProxy = false) {
     const epObj = STATE.activeEpisodesList.find(e => e.episode_num === episodeNum);
     const epId = epObj ? epObj.episode_id : String(episodeNum);
     
-    // If we already have a direct link from allepisode
+    // If we already have a direct MP4 link from allepisode (e.g. DonghuaQueen, DramaQueen)
     if (epObj && epObj.direct_url && !forceProxy) {
         loadDirectVideo(epObj.direct_url);
         return;
@@ -1033,11 +1034,16 @@ async function playEpisode(episodeNum, forceProxy = false) {
             }
 
             if (videoUrl) {
-                // Sanitize URL to ensure HTTPS
+                // Ensure HTTPS
                 videoUrl = sanitizeMediaUrl(videoUrl, platform);
 
+                // Detect if it is HLS .m3u8
                 if (videoUrl.includes(".m3u8")) {
                     streamType = "hls";
+                    // For DramaWave or CORS-restricted HLS, route through CORS proxy
+                    if (videoUrl.includes("mydramawave.com") || platform === "dramawave") {
+                        videoUrl = `/api/proxy_stream?url=${encodeURIComponent(videoUrl)}`;
+                    }
                 }
 
                 elements.videoLoadingText.textContent = 'Memulai pemutaran...';
@@ -1084,6 +1090,10 @@ async function playEpisode(episodeNum, forceProxy = false) {
 }
 
 function loadDirectVideo(url) {
+    if (STATE.hlsInstance) {
+        STATE.hlsInstance.destroy();
+        STATE.hlsInstance = null;
+    }
     const safeUrl = sanitizeMediaUrl(url, STATE.activeDrama ? STATE.activeDrama.platform_id : 'donghuaqueen');
     elements.mainVideo.src = safeUrl;
     elements.mainVideo.onloadeddata = () => {
