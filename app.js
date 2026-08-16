@@ -4,7 +4,8 @@
 
 const API_BASE = "https://redmi.nunodrama.my.id";
 
-const DEFAULT_POSTER = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%23222222"/><stop offset="100%" stop-color="%23111111"/></linearGradient></defs><rect width="300" height="450" fill="url(%23g)"/><rect x="6" y="6" width="288" height="438" rx="6" fill="none" stroke="%23333333" stroke-width="2"/><circle cx="150" cy="180" r="36" fill="%23E50914" opacity="0.85"/><polygon points="144,166 164,180 144,194" fill="%23ffffff"/><text x="150" y="250" fill="%23ffffff" font-family="-apple-system,sans-serif" font-size="15" font-weight="bold" text-anchor="middle">APULA-FLIX</text><text x="150" y="275" fill="%23888888" font-family="-apple-system,sans-serif" font-size="12" text-anchor="middle">Streaming</text></svg>`;
+// Safe SVG Data URI with zero double quotes to prevent breaking HTML attributes
+const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22450%22%20viewBox%3D%220%200%20300%20450%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23222222%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23111111%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22300%22%20height%3D%22450%22%20fill%3D%22url(%23g)%22%2F%3E%3Ccircle%20cx%3D%22150%22%20cy%3D%22180%22%20r%3D%2236%22%20fill%3D%22%23E50914%22%20opacity%3D%220.85%22%2F%3E%3Cpolygon%20points%3D%22144%2C166%20164%2C180%20144%2C194%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%22150%22%20y%3D%22250%22%20fill%3D%22%23ffffff%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20font-weight%3D%22bold%22%20text-anchor%3D%22middle%22%3EAPULA-FLIX%3C%2Ftext%3E%3Ctext%20x%3D%22150%22%20y%3D%22275%22%20fill%3D%22%23888888%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20text-anchor%3D%22middle%22%3EStreaming%3C%2Ftext%3E%3C%2Fsvg%3E";
 
 const PLATFORMS_CONFIG = [
     {
@@ -336,6 +337,16 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDramas();
 });
 
+// Document-level clean fallback for images (eliminates inline onerror syntax errors)
+document.addEventListener('error', (e) => {
+    if (e.target && e.target.tagName === 'IMG' && e.target.classList.contains('card-poster')) {
+        if (e.target.dataset.fb !== '1') {
+            e.target.dataset.fb = '1';
+            e.target.src = DEFAULT_POSTER;
+        }
+    }
+}, true);
+
 function initEvents() {
     window.addEventListener('scroll', () => {
         if (window.scrollY > 30) {
@@ -632,16 +643,16 @@ function normalizeCard(item, platformId) {
     }
     
     const desc = (
-        item.description || item.synopsis || item.intro ||
+        item.description || item.synopsis || item.intro || item.introduction ||
         item.summary || item.brief || ""
     );
     
     const episodes = (
         item.chapterCount || item.total_episode || item.jumlah_episode || item.episode_final ||
-        item.num_videos || item.episodes_count || item.total_chapter || item.episode_num || item.total || null
+        item.num_videos || item.episodes_count || item.total_chapter || item.episode || item.episode_num || item.total || null
     );
     
-    let tags = item.tagList || item.genres || item.genre || item.labels || item.tags || item.categories || item.category || [];
+    let tags = item.tagList || item.genres || item.genre || item.labels || item.label || item.tags || item.categories || item.category || [];
     if (typeof tags === "string") {
         try {
             const parsed = JSON.parse(tags);
@@ -832,7 +843,7 @@ function renderGrid(dramas) {
         html += `
             <div class="drama-card" data-index="${idx}">
                 <div class="card-poster-wrapper">
-                    <img class="card-poster" src="${coverImg}" alt="${item.title}" loading="lazy" onerror="if(this.dataset.fb!=='1'){this.dataset.fb='1';this.src='${DEFAULT_POSTER}';}">
+                    <img class="card-poster" src="${coverImg}" alt="${item.title}" loading="lazy">
                     <span class="card-platform-tag">${item.platform_name || 'Drama'}</span>
                     <span class="card-ep-badge">${epBadge}</span>
                     <div class="card-play-overlay">
@@ -1093,8 +1104,19 @@ async function playEpisode(episodeNum, forceProxy = false) {
                         hls.on(Hls.Events.ERROR, (event, data) => {
                             if (data.fatal) {
                                 console.warn('HLS stream error:', data.type);
-                                elements.videoLoadingText.textContent = 'Gagal memuat stream video HLS.';
-                                elements.videoLoading.classList.remove('show');
+                                switch (data.type) {
+                                    case Hls.ErrorTypes.NETWORK_ERROR:
+                                        console.warn('HLS network error, attempting auto-retry...');
+                                        hls.startLoad();
+                                        break;
+                                    case Hls.ErrorTypes.MEDIA_ERROR:
+                                        console.warn('HLS media error, recovering...');
+                                        hls.recoverMediaError();
+                                        break;
+                                    default:
+                                        elements.videoLoading.classList.remove('show');
+                                        break;
+                                }
                             }
                         });
                         STATE.hlsInstance = hls;
