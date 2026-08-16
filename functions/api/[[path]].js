@@ -22,7 +22,6 @@ function corsHeaders(custom = {}) {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, HEAD, OPTIONS",
         "Access-Control-Allow-Headers": "*",
-        "Content-Type": "application/json",
         ...custom
     };
 }
@@ -30,7 +29,7 @@ function corsHeaders(custom = {}) {
 function jsonResponse(data, status = 200, extraHeaders = {}) {
     return new Response(JSON.stringify(data), {
         status,
-        headers: corsHeaders(extraHeaders)
+        headers: corsHeaders({ "Content-Type": "application/json", ...extraHeaders })
     });
 }
 
@@ -138,8 +137,7 @@ export async function onRequest(context) {
         }
     }
 
-    // 3. Generic /api/* Proxy with Intelligent Routing
-    // Platforms that respond instantly and stably from backup server
+    // 3. Generic /api/* Proxy with Ultra-Fast Intelligent Routing
     const isExclusiveToBackup = (
         pathString.startsWith("sodareels") ||
         pathString.startsWith("donghuaqueen") ||
@@ -161,7 +159,7 @@ export async function onRequest(context) {
 
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 4000);
+            const timeout = setTimeout(() => controller.abort(), 2000); // 2.0s fast failover
             
             const response = await fetch(primaryTargetUrl, {
                 method: request.method,
@@ -172,7 +170,6 @@ export async function onRequest(context) {
             clearTimeout(timeout);
 
             if (response.ok) {
-                // If primary returns an empty error json, let it fall back
                 const responseHeaders = new Headers(response.headers);
                 responseHeaders.set("Access-Control-Allow-Origin", "*");
                 responseHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
@@ -187,11 +184,11 @@ export async function onRequest(context) {
         } catch (err) {}
     }
 
-    // Backup Server Proxy with generous timeout
+    // Backup Server Fallback with generous timeout (12 seconds)
     const backupTargetUrl = `${BACKUP_BASE}/api/${pathString}${url.search}`;
     try {
         const controller2 = new AbortController();
-        const timeout2 = setTimeout(() => controller2.abort(), 10000);
+        const timeout2 = setTimeout(() => controller2.abort(), 12000);
 
         const backupResp = await fetch(backupTargetUrl, {
             method: request.method,

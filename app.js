@@ -741,9 +741,7 @@ function normalizeCard(item, platformId) {
     };
 }
 
-// Resilient API Fetch (100% CORS & Mixed-Content Clean):
-// 1. Calls same-origin Edge Gateway (/api/...) -> proxies to nunodrama.my.id with Bearer token & failover
-// 2. Direct fallback to redmi.nunodrama.my.id (Open CORS & HTTPS)
+// Universal API Client with Intelligent Failover & Payload Decryption
 async function apiFetch(endpoint, params = {}) {
     const q = new URLSearchParams(params).toString();
     const queryStr = q ? '?' + q : '';
@@ -752,21 +750,22 @@ async function apiFetch(endpoint, params = {}) {
     try {
         const edgeUrl = `${endpoint}${queryStr}`;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        const timeout = setTimeout(() => controller.abort(), 12000);
 
         const resp = await fetch(edgeUrl, {
-            headers: { 'Accept': 'application/json' },
+            headers: { 'Accept': 'application/json, text/plain, */*' },
             signal: controller.signal
         });
         clearTimeout(timeout);
 
         if (resp.ok) {
-            const cType = resp.headers.get('content-type') || '';
-            if (cType.includes('mpegurl') || cType.includes('application/x-mpegURL') || cType.includes('text/plain')) {
-                const textBody = await resp.text();
-                return { playUrl: edgeUrl, rawText: textBody };
+            const rawText = await resp.text();
+            let resData = null;
+            try {
+                resData = JSON.parse(rawText);
+            } catch (e) {
+                resData = rawText;
             }
-            let resData = await resp.json();
             if (resData && typeof resData === 'object' && typeof resData.data === 'string' && resData.data.startsWith('U2FsdGVk')) {
                 resData.data = decryptNunoData(resData.data);
             }
@@ -780,16 +779,23 @@ async function apiFetch(endpoint, params = {}) {
     try {
         const backupUrl = `${BACKUP_API}${endpoint}${queryStr}`;
         const controller2 = new AbortController();
-        const timeout2 = setTimeout(() => controller2.abort(), 5000);
+        const timeout2 = setTimeout(() => controller2.abort(), 12000);
 
         const bResp = await fetch(backupUrl, {
             mode: 'cors',
+            headers: { 'Accept': 'application/json, text/plain, */*' },
             signal: controller2.signal
         });
         clearTimeout(timeout2);
 
         if (bResp.ok) {
-            let resData = await bResp.json();
+            const rawText = await bResp.text();
+            let resData = null;
+            try {
+                resData = JSON.parse(rawText);
+            } catch (e) {
+                resData = rawText;
+            }
             if (resData && typeof resData === 'object' && typeof resData.data === 'string' && resData.data.startsWith('U2FsdGVk')) {
                 resData.data = decryptNunoData(resData.data);
             }
@@ -800,7 +806,7 @@ async function apiFetch(endpoint, params = {}) {
     return null;
 }
 
-// Fetch and Render Drama Catalog
+// Fetch and Render Drama Catalog with Progressive Real-Time Streaming
 async function loadDramas() {
     elements.dramaGrid.innerHTML = `
         <div class="grid-loading">
@@ -813,55 +819,50 @@ async function loadDramas() {
     if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
         targetPlatforms = [STATE.currentPlatform];
     } else {
-        targetPlatforms = ["sodareels", "dramawave", "dramabox", "shortmax", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "minishort", "goodshort", "shorten", "honey", "dotdrama", "soreel", "fundrama", "bibishort"];
+        targetPlatforms = ["dramaqueen", "dramabox", "dotdrama", "mydrama", "shortmax", "sodareels", "lookseries", "donghuaqueen", "dramawave", "minishort", "goodshort", "shorten", "honey", "soreel", "fundrama", "bibishort"];
     }
 
-    try {
-        const promises = targetPlatforms.map(async (pId) => {
-            const pCfg = PLATFORM_MAP[pId];
-            if (!pCfg) return [];
-            const eps = pCfg.endpoints || {};
-            const ep = eps[STATE.currentCategory] || eps.foryou || Object.values(eps)[0];
-            if (!ep) return [];
+    let loadedCards = [];
+    let hasRenderedAny = false;
 
-            const pParams = { page: 1 };
-            if (ep.includes("limit") || ep.includes("drama") || ep.includes("donghua")) {
-                pParams.limit = 18;
-            }
+    const promises = targetPlatforms.map(async (pId) => {
+        const pCfg = PLATFORM_MAP[pId];
+        if (!pCfg) return [];
+        const eps = pCfg.endpoints || {};
+        const ep = eps[STATE.currentCategory] || eps.foryou || Object.values(eps)[0];
+        if (!ep) return [];
 
+        const pParams = { page: 1 };
+        if (ep.includes("limit") || ep.includes("drama") || ep.includes("donghua")) {
+            pParams.limit = 18;
+        }
+
+        try {
             const data = await apiFetch(ep, pParams);
             const rawItems = extractList(data);
-            return rawItems.map(item => normalizeCard(item, pId));
-        });
-
-        const settled = await Promise.allSettled(promises);
-        let results = [];
-        for (const res of settled) {
-            if (res.status === "fulfilled" && Array.isArray(res.value)) {
-                results.push(...res.value);
+            const cards = rawItems.map(item => normalizeCard(item, pId));
+            if (cards.length > 0) {
+                loadedCards.push(...cards);
+                STATE.dramas = loadedCards;
+                elements.sectionCount.textContent = `${loadedCards.length} Judul`;
+                renderGrid(loadedCards);
+                if (!hasRenderedAny) {
+                    hasRenderedAny = true;
+                    setHero(cards[0]);
+                }
             }
+            return cards;
+        } catch (e) {
+            return [];
         }
+    });
 
-        if (results.length > 0) {
-            STATE.dramas = results;
-            elements.sectionCount.textContent = `${results.length} Judul`;
-            renderGrid(results);
-            
-            if (!STATE.featuredDrama || STATE.currentPlatform !== 'all') {
-                setHero(results[0]);
-            }
-        } else {
-            elements.dramaGrid.innerHTML = `
-                <div class="grid-empty">
-                    <p>Tidak ada konten drama ditemukan untuk kategori ini.</p>
-                </div>
-            `;
-        }
-    } catch (e) {
-        console.error('Error fetching dramas:', e);
+    await Promise.allSettled(promises);
+
+    if (loadedCards.length === 0) {
         elements.dramaGrid.innerHTML = `
             <div class="grid-empty">
-                <p>Gagal memuat katalog drama. Silakan coba pilih platform lain.</p>
+                <p>Tidak ada konten drama ditemukan untuk kategori ini.</p>
             </div>
         `;
     }
