@@ -324,6 +324,11 @@ const elements = {
 function sanitizeMediaUrl(url, platform = 'donghuaqueen') {
     if (!url || typeof url !== 'string') return '';
     
+    // Auto-heal offline greip host to active santol mirror
+    if (url.includes('greip.whatbox.ca')) {
+        url = url.replace('greip.whatbox.ca', 'santol.whatbox.ca');
+    }
+
     // Guard: Prevent recursive / nested proxy wrapping
     if (url.includes('/api/donghuaqueen/proxy_video') ||
         url.includes('/api/dramaqueen/proxy_video') ||
@@ -335,7 +340,7 @@ function sanitizeMediaUrl(url, platform = 'donghuaqueen') {
     if (url.includes('whatbox.ca')) {
         if (platform === 'lookseries' || url.includes('lookseries')) {
             return `https://redmi.nunodrama.my.id/api/lookseries/proxy?url=${encodeURIComponent(url)}`;
-        } else if (platform === 'dramaqueen' || url.includes('rambutan.whatbox.ca')) {
+        } else if (platform === 'dramaqueen' || url.includes('/drama/') || url.includes('rambutan.whatbox.ca') || url.includes('santol.whatbox.ca') || url.includes('elara.whatbox.ca')) {
             return `https://redmi.nunodrama.my.id/api/dramaqueen/proxy_video?url=${encodeURIComponent(url)}`;
         } else if (platform === 'donghuaqueen' || url.includes('oberon.whatbox.ca')) {
             return `https://redmi.nunodrama.my.id/api/donghuaqueen/proxy_video?url=${encodeURIComponent(url)}`;
@@ -1143,7 +1148,8 @@ async function openPlayer(drama, episodeNum = 1) {
                             episode_num: i,
                             episode_id: String(i),
                             title: `Episode ${i}`,
-                            direct_url: null
+                            direct_url: null,
+                            alternate_urls: []
                         });
                     }
                 }
@@ -1156,16 +1162,35 @@ async function openPlayer(drama, episodeNum = 1) {
                     const epNum = ep.chapterIndex || ep.number_episode || ep.episode || ep.episode_num || ep.index || ep.ep || (idx + 1);
                     const epId = String(ep.episodeId || ep.episode_id || ep.chapterId || ep.chapter_id || ep.id || ep.eid || ep.nid || epNum);
                     const epTitle = ep.chapterName || ep.title || ep.name || ep.ep_title || `Episode ${epNum}`;
-                    let directUrl = ep.playUrl || ep.play_url || ep.videoUrl || ep.video_url || ep.stream_url || ep.link_720 || ep.link720_pro || ep.link720_a || null;
-                    if (directUrl) {
-                        directUrl = sanitizeMediaUrl(directUrl, drama.platform_id);
-                    }
+                    
+                    const candidates = [
+                        ep.link720_en,
+                        ep.link720_premium,
+                        ep.link720_a,
+                        ep.link_720,
+                        ep.link_1080,
+                        ep.playUrl,
+                        ep.play_url,
+                        ep.videoUrl,
+                        ep.video_url,
+                        ep.stream_url,
+                        ep.link720_pro,
+                        ep.link_hls_premium,
+                        ep.link_hls,
+                        ep.link720_b,
+                        ep.url
+                    ].filter(u => typeof u === 'string' && u.trim().length > 0);
+
+                    const fixedCandidates = candidates.map(u => u.replace("greip.whatbox.ca", "santol.whatbox.ca"));
+                    const directUrl = fixedCandidates.length > 0 ? sanitizeMediaUrl(fixedCandidates[0], drama.platform_id) : null;
+                    const alternateUrls = fixedCandidates.slice(1).map(u => sanitizeMediaUrl(u, drama.platform_id));
                     
                     episodes.push({
                         episode_num: epNum,
                         episode_id: epId,
                         title: epTitle,
-                        direct_url: directUrl
+                        direct_url: directUrl,
+                        alternate_urls: alternateUrls
                     });
                 });
             }
@@ -1181,7 +1206,8 @@ async function openPlayer(drama, episodeNum = 1) {
                 episode_num: i,
                 episode_id: String(i),
                 title: `Episode ${i}`,
-                direct_url: null
+                direct_url: null,
+                alternate_urls: []
             });
         }
     }
@@ -1255,6 +1281,9 @@ async function playEpisode(episodeNum, forceProxy = false) {
                 hls.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
                         elements.videoLoading.classList.remove('show');
+                        if (epObj.alternate_urls && epObj.alternate_urls.length > 0) {
+                            playDirectVideo(epObj.alternate_urls[0], epObj.alternate_urls.slice(1));
+                        }
                     }
                 });
                 STATE.hlsInstance = hls;
@@ -1263,9 +1292,10 @@ async function playEpisode(episodeNum, forceProxy = false) {
                 elements.mainVideo.play().catch(() => {});
                 elements.videoLoading.classList.remove('show');
             }
-        } else {
-            loadDirectVideo(directPlayUrl);
+            return;
         }
+
+        playDirectVideo(directPlayUrl, epObj.alternate_urls || []);
         return;
     }
 
@@ -1419,7 +1449,7 @@ async function playEpisode(episodeNum, forceProxy = false) {
     }
 }
 
-function loadDirectVideo(url) {
+function loadDirectVideo(url, fallbackUrls = []) {
     if (STATE.hlsInstance) {
         STATE.hlsInstance.destroy();
         STATE.hlsInstance = null;
@@ -1435,10 +1465,19 @@ function loadDirectVideo(url) {
         elements.mainVideo.play().catch(() => {});
     };
     elements.mainVideo.onerror = (e) => {
+        if (fallbackUrls && fallbackUrls.length > 0) {
+            const nextUrl = fallbackUrls[0];
+            const remaining = fallbackUrls.slice(1);
+            elements.videoLoadingText.textContent = 'Mencoba server cadangan...';
+            loadDirectVideo(nextUrl, remaining);
+            return;
+        }
         elements.videoLoading.classList.remove('show');
         console.warn('Direct video error:', e);
+        showToast('Stream video belum tersedia di server hulu.');
     };
 }
+const playDirectVideo = loadDirectVideo;
 
 function closePlayer() {
     elements.playerModal.classList.remove('open');

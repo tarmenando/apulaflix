@@ -66,11 +66,15 @@ export async function onRequest(context) {
 
         // Whatbox.ca streams require upstream Basic Auth credentials held by redmi.nunodrama.my.id
         if (streamUrl.includes("whatbox.ca")) {
+            let workingStreamUrl = streamUrl;
+            if (workingStreamUrl.includes("greip.whatbox.ca")) {
+                workingStreamUrl = workingStreamUrl.replace("greip.whatbox.ca", "santol.whatbox.ca");
+            }
             let authProxyUrl = "";
-            if (streamUrl.includes("rambutan")) {
-                authProxyUrl = `${BACKUP_BASE}/api/dramaqueen/proxy_video?url=${encodeURIComponent(streamUrl)}`;
+            if (workingStreamUrl.includes("rambutan") || workingStreamUrl.includes("/drama/") || workingStreamUrl.includes("santol") || workingStreamUrl.includes("elara")) {
+                authProxyUrl = `${BACKUP_BASE}/api/dramaqueen/proxy_video?url=${encodeURIComponent(workingStreamUrl)}`;
             } else {
-                authProxyUrl = `${BACKUP_BASE}/api/donghuaqueen/proxy_video?url=${encodeURIComponent(streamUrl)}`;
+                authProxyUrl = `${BACKUP_BASE}/api/donghuaqueen/proxy_video?url=${encodeURIComponent(workingStreamUrl)}`;
             }
             return Response.redirect(authProxyUrl, 302);
         }
