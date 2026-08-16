@@ -256,6 +256,8 @@ const STATE = {
     currentSearch: '',
     platforms: PLATFORMS_CONFIG,
     dramas: [],
+    currentPage: 1,
+    itemsPerPage: 24,
     featuredDrama: null,
     activeDrama: null,
     activeEpisodeNum: 1,
@@ -281,6 +283,7 @@ const elements = {
     searchClearBtn: document.getElementById('searchClearBtn'),
     searchToggle: document.getElementById('searchToggle'),
     dramaGrid: document.getElementById('dramaGrid'),
+    paginationContainer: document.getElementById('paginationContainer'),
     sectionTitle: document.getElementById('currentSectionTitle'),
     sectionCount: document.getElementById('sectionCount'),
     
@@ -531,6 +534,7 @@ function initEvents() {
 function setCategory(category) {
     STATE.currentCategory = category;
     STATE.currentSearch = '';
+    STATE.currentPage = 1;
     elements.searchInput.value = '';
     elements.searchBox.classList.remove('has-text');
 
@@ -594,6 +598,7 @@ function renderPlatformPills(platforms) {
 
 function setPlatform(platformId) {
     STATE.currentPlatform = platformId;
+    STATE.currentPage = 1;
     
     const selected = STATE.platforms.find(p => p.id === platformId);
     if (selected) {
@@ -810,7 +815,7 @@ async function apiFetch(endpoint, params = {}) {
     return null;
 }
 
-// Fetch and Render Drama Catalog with Progressive Real-Time Streaming
+// Fetch and Render Drama Catalog with Progressive Real-Time Streaming & Pagination
 async function loadDramas() {
     elements.dramaGrid.innerHTML = `
         <div class="grid-loading">
@@ -818,6 +823,7 @@ async function loadDramas() {
             <p>Memuat tayangan terbaik...</p>
         </div>
     `;
+    if (elements.paginationContainer) elements.paginationContainer.innerHTML = '';
 
     let targetPlatforms = [];
     if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
@@ -848,8 +854,7 @@ async function loadDramas() {
             if (cards.length > 0) {
                 loadedCards.push(...cards);
                 STATE.dramas = loadedCards;
-                elements.sectionCount.textContent = `${loadedCards.length} Judul`;
-                renderGrid(loadedCards);
+                renderPaginatedView();
                 if (!hasRenderedAny) {
                     hasRenderedAny = true;
                     setHero(cards[0]);
@@ -869,6 +874,9 @@ async function loadDramas() {
                 <p>Tidak ada konten drama ditemukan untuk kategori ini.</p>
             </div>
         `;
+        if (elements.paginationContainer) elements.paginationContainer.innerHTML = '';
+    } else {
+        renderPaginatedView();
     }
 }
 
@@ -879,7 +887,9 @@ async function performSearch(keyword) {
             <p>Mencari "${keyword}"...</p>
         </div>
     `;
+    if (elements.paginationContainer) elements.paginationContainer.innerHTML = '';
     elements.sectionTitle.textContent = `Hasil Pencarian: "${keyword}"`;
+    STATE.currentPage = 1;
 
     let targetPlatforms = [];
     if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
@@ -907,14 +917,14 @@ async function performSearch(keyword) {
 
         if (allCards.length > 0) {
             STATE.dramas = allCards;
-            elements.sectionCount.textContent = `${allCards.length} Hasil`;
-            renderGrid(allCards);
+            renderPaginatedView();
         } else {
             elements.dramaGrid.innerHTML = `
                 <div class="grid-empty">
                     <p>Tidak ada judul drama yang cocok dengan "${keyword}".</p>
                 </div>
             `;
+            if (elements.paginationContainer) elements.paginationContainer.innerHTML = '';
         }
     } catch (e) {
         console.error('Search error:', e);
@@ -939,15 +949,119 @@ function setHero(drama) {
     }
 }
 
-function renderGrid(dramas) {
+// Render Current Page Slice and Pagination Controls
+function renderPaginatedView() {
+    const totalItems = STATE.dramas.length;
+    if (totalItems === 0) {
+        elements.dramaGrid.innerHTML = `
+            <div class="grid-empty">
+                <p>Tidak ada konten drama ditemukan untuk kategori ini.</p>
+            </div>
+        `;
+        if (elements.paginationContainer) elements.paginationContainer.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(totalItems / STATE.itemsPerPage));
+    if (STATE.currentPage > totalPages) {
+        STATE.currentPage = 1;
+    }
+
+    const startIndex = (STATE.currentPage - 1) * STATE.itemsPerPage;
+    const endIndex = Math.min(startIndex + STATE.itemsPerPage, totalItems);
+    const pageItems = STATE.dramas.slice(startIndex, endIndex);
+
+    elements.sectionCount.textContent = `${totalItems} Judul (Hal ${STATE.currentPage} dari ${totalPages})`;
+    renderGrid(pageItems, startIndex);
+    renderPagination(totalItems, STATE.currentPage, STATE.itemsPerPage);
+}
+
+function goToPage(pageNum) {
+    const totalPages = Math.max(1, Math.ceil(STATE.dramas.length / STATE.itemsPerPage));
+    if (pageNum < 1 || pageNum > totalPages) return;
+    STATE.currentPage = pageNum;
+    renderPaginatedView();
+
+    const section = document.getElementById('currentSectionTitle');
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function renderPagination(totalItems, currentPage, itemsPerPage) {
+    if (!elements.paginationContainer) return;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    if (totalPages <= 1) {
+        elements.paginationContainer.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+
+    // Prev Button
+    html += `
+        <button class="page-btn page-prev" ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">
+            ‹ Prev
+        </button>
+    `;
+
+    // Window logic for pages
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage + 1 < maxVisible) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        html += `<button class="page-btn" data-page="1">1</button>`;
+        if (startPage > 2) {
+            html += `<span class="page-ellipsis">…</span>`;
+        }
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+        const isActive = p === currentPage;
+        html += `<button class="page-btn ${isActive ? 'active' : ''}" data-page="${p}">${p}</button>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            html += `<span class="page-ellipsis">…</span>`;
+        }
+        html += `<button class="page-btn" data-page="${totalPages}">${totalPages}</button>`;
+    }
+
+    // Next Button
+    html += `
+        <button class="page-btn page-next" ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">
+            Next ›
+        </button>
+    `;
+
+    elements.paginationContainer.innerHTML = html;
+
+    elements.paginationContainer.querySelectorAll('.page-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const p = parseInt(btn.dataset.page);
+            if (!isNaN(p) && p >= 1 && p <= totalPages && p !== STATE.currentPage) {
+                goToPage(p);
+            }
+        });
+    });
+}
+
+function renderGrid(dramas, baseIndex = 0) {
     let html = '';
     dramas.forEach((item, idx) => {
+        const actualIdx = baseIndex + idx;
         const coverImg = (item.cover && item.cover.startsWith('http')) ? item.cover : DEFAULT_POSTER;
         const epBadge = item.episodes ? `${item.episodes} Ep` : 'HD';
         const tagText = item.tags && item.tags.length ? item.tags.join(', ') : item.platform_name;
 
         html += `
-            <div class="drama-card" data-index="${idx}">
+            <div class="drama-card" data-index="${actualIdx}">
                 <div class="card-poster-wrapper">
                     <img class="card-poster" src="${coverImg}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${DEFAULT_POSTER}'">
                     <span class="card-platform-tag">${item.platform_name || 'Drama'}</span>
