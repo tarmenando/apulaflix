@@ -1,12 +1,220 @@
 /**
- * APULA-FLIX - JAVASCRIPT CONTROLLER (RESPONSIVE)
+ * APULA-FLIX - HIGH PERFORMANCE CLIENT-SIDE STREAMING CONTROLLER
  */
+
+const API_BASE = "https://redmi.nunodrama.my.id";
+
+const DEFAULT_POSTER = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%23222222"/><stop offset="100%" stop-color="%23111111"/></linearGradient></defs><rect width="300" height="450" fill="url(%23g)"/><rect x="6" y="6" width="288" height="438" rx="6" fill="none" stroke="%23333333" stroke-width="2"/><circle cx="150" cy="180" r="36" fill="%23E50914" opacity="0.85"/><polygon points="144,166 164,180 144,194" fill="%23ffffff"/><text x="150" y="250" fill="%23ffffff" font-family="-apple-system,sans-serif" font-size="15" font-weight="bold" text-anchor="middle">APULA-FLIX</text><text x="150" y="275" fill="%23888888" font-family="-apple-system,sans-serif" font-size="12" text-anchor="middle">Streaming</text></svg>`;
+
+const PLATFORMS_CONFIG = [
+    {
+        id: "lookseries",
+        name: "LookSeries",
+        badge: "Film & Series",
+        icon: "🎬",
+        endpoints: {
+            foryou: "/api/lookseries/foryou",
+            trending: "/api/lookseries/foryou",
+            film: "/api/lookseries/film",
+            series: "/api/lookseries/series",
+            kartun: "/api/lookseries/kartun",
+            search: "/api/lookseries/search",
+            detail: "/api/lookseries/detail",
+            allepisode: "/api/lookseries/allepisode",
+            stream: "/api/lookseries/stream"
+        }
+    },
+    {
+        id: "donghuaqueen",
+        name: "DonghuaQueen",
+        badge: "Donghua / Anime",
+        icon: "🐉",
+        endpoints: {
+            foryou: "/api/donghuaqueen/donghua",
+            trending: "/api/donghuaqueen/donghua",
+            donghua: "/api/donghuaqueen/donghua",
+            search: "/api/donghuaqueen/search",
+            detail: "/api/donghuaqueen/detail",
+            allepisode: "/api/donghuaqueen/allepisode",
+            stream: "/api/donghuaqueen/stream"
+        }
+    },
+    {
+        id: "goodshort",
+        name: "GoodShort",
+        badge: "Top Picks",
+        icon: "⭐",
+        endpoints: {
+            foryou: "/api/goodshort/foryou",
+            trending: "/api/goodshort/foryou",
+            search: "/api/goodshort/search",
+            detail: "/api/goodshort/detail",
+            allepisode: "/api/goodshort/allepisode",
+            stream: "/api/goodshort/stream"
+        }
+    },
+    {
+        id: "dramaqueen",
+        name: "DramaQueen",
+        badge: "Drakor / Series",
+        icon: "👑",
+        endpoints: {
+            foryou: "/api/dramaqueen/drama",
+            trending: "/api/dramaqueen/drama",
+            movie: "/api/dramaqueen/movie",
+            search: "/api/dramaqueen/search",
+            detail: "/api/dramaqueen/detail",
+            allepisode: "/api/dramaqueen/allepisode",
+            stream: "/api/dramaqueen/stream"
+        }
+    },
+    {
+        id: "dramawave",
+        name: "DramaWave",
+        badge: "Popular",
+        icon: "🌊",
+        endpoints: {
+            foryou: "/api/dramawave/trending",
+            trending: "/api/dramawave/trending",
+            new: "/api/dramawave/newrelease",
+            vip: "/api/dramawave/vip",
+            dubbing: "/api/dramawave/trending",
+            search: "/api/dramawave/search",
+            detail: "/api/dramawave/detail",
+            allepisode: "/api/dramawave/allepisode",
+            stream: "/api/dramawave/stream"
+        }
+    },
+    {
+        id: "dramabox",
+        name: "DramaBox",
+        badge: "Short Drama",
+        icon: "🎭",
+        endpoints: {
+            foryou: "/api/dramabox/dubbing",
+            trending: "/api/dramabox/ranking",
+            terbaru: "/api/dramabox/terbaru",
+            dubbing: "/api/dramabox/dubbing",
+            vip: "/api/dramabox/vip",
+            search: "/api/dramabox/search",
+            detail: "/api/dramabox/detail",
+            allepisode: "/api/dramabox/allepisode",
+            stream: "/api/dramabox/stream"
+        }
+    },
+    {
+        id: "fundrama",
+        name: "FunDrama",
+        badge: "Comedy & Action",
+        icon: "🎉",
+        endpoints: {
+            foryou: "/api/fundrama/foryou",
+            trending: "/api/fundrama/foryou",
+            search: "/api/fundrama/search",
+            detail: "/api/fundrama/detail",
+            allepisode: "/api/fundrama/allepisode",
+            stream: "/api/fundrama/stream"
+        }
+    },
+    {
+        id: "vigloo",
+        name: "Vigloo",
+        badge: "Exclusive",
+        icon: "💎",
+        endpoints: {
+            foryou: "/api/vigloo/foryou",
+            trending: "/api/vigloo/foryou",
+            detail: "/api/vigloo/detail",
+            allepisode: "/api/vigloo/allepisode",
+            stream: "/api/vigloo/stream"
+        }
+    },
+    {
+        id: "honey",
+        name: "Honey Drama",
+        badge: "Popular",
+        icon: "🍯",
+        endpoints: {
+            foryou: "/api/honey/foryou",
+            trending: "/api/honey/foryou",
+            recommend: "/api/honey/recommend",
+            search: "/api/honey/search",
+            detail: "/api/honey/detail",
+            allepisode: "/api/honey/allepisode",
+            stream: "/api/honey/stream"
+        }
+    },
+    {
+        id: "bibishort",
+        name: "BibiShort",
+        badge: "Mini Series",
+        icon: "📱",
+        endpoints: {
+            foryou: "/api/bibishort/foryou",
+            trending: "/api/bibishort/foryou",
+            home: "/api/bibishort/home",
+            search: "/api/bibishort/search",
+            detail: "/api/bibishort/detail",
+            allepisode: "/api/bibishort/allepisode",
+            stream: "/api/bibishort/stream"
+        }
+    },
+    {
+        id: "reelshort",
+        name: "ReelShort",
+        badge: "Short Romance",
+        icon: "⚡",
+        endpoints: {
+            foryou: "/api/reelshort/foryou",
+            trending: "/api/reelshort/terbaru",
+            dub: "/api/reelshort/dub",
+            lovestory: "/api/reelshort/lovestory",
+            search: "/api/reelshort/search",
+            detail: "/api/reelshort/detail",
+            allepisode: "/api/reelshort/allepisode",
+            stream: "/api/reelshort/stream"
+        }
+    },
+    {
+        id: "hotdrama",
+        name: "HotDrama",
+        badge: "Trending",
+        icon: "🔥",
+        endpoints: {
+            foryou: "/api/hotdrama/foryou",
+            trending: "/api/hotdrama/trending",
+            hot: "/api/hotdrama/hot",
+            new: "/api/hotdrama/new",
+            vip: "/api/hotdrama/vip",
+            search: "/api/hotdrama/search",
+            detail: "/api/hotdrama/detail",
+            allepisode: "/api/hotdrama/allepisode",
+            stream: "/api/hotdrama/stream"
+        }
+    },
+    {
+        id: "shortmax",
+        name: "ShortMax",
+        badge: "HD Drama",
+        icon: "🚀",
+        endpoints: {
+            foryou: "/api/shortmax/foryou",
+            trending: "/api/shortmax/foryou",
+            search: "/api/shortmax/search",
+            detail: "/api/shortmax/detail",
+            allepisode: "/api/shortmax/allepisode",
+            stream: "/api/shortmax/stream"
+        }
+    }
+];
+
+const PLATFORM_MAP = Object.fromEntries(PLATFORMS_CONFIG.map(p => [p.id, p]));
 
 const STATE = {
     currentPlatform: 'all',
     currentCategory: 'foryou',
     currentSearch: '',
-    platforms: [],
+    platforms: PLATFORMS_CONFIG,
     dramas: [],
     featuredDrama: null,
     activeDrama: null,
@@ -72,13 +280,11 @@ const elements = {
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     initEvents();
-    loadPlatforms();
+    renderPlatformDropdown(PLATFORMS_CONFIG);
     loadDramas();
-    startKeepAlive();
 });
 
 function initEvents() {
-    // Scroll navbar background
     window.addEventListener('scroll', () => {
         if (window.scrollY > 30) {
             elements.navbar.classList.add('scrolled');
@@ -87,7 +293,6 @@ function initEvents() {
         }
     }, { passive: true });
 
-    // Platform Dropdown Toggle
     elements.platformDropdownBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         elements.platformDropdown.classList.toggle('show');
@@ -97,14 +302,12 @@ function initEvents() {
         elements.platformDropdown.classList.remove('show');
     });
 
-    // Desktop Nav Category Tabs
     elements.navTabs.forEach(tab => {
         tab.addEventListener('click', () => {
             setCategory(tab.dataset.category);
         });
     });
 
-    // Mobile Category Bar Pills
     if (elements.mobileCategoryBar) {
         elements.mobileCategoryBar.addEventListener('click', (e) => {
             const btn = e.target.closest('.cat-pill');
@@ -114,14 +317,12 @@ function initEvents() {
         });
     }
 
-    // Filter Pills Bar (Platforms)
     elements.filterPillsBar.addEventListener('click', (e) => {
         const pill = e.target.closest('.pill');
         if (!pill) return;
         setPlatform(pill.dataset.platform);
     });
 
-    // Mobile Bottom Nav
     if (elements.mobileBottomNav) {
         elements.mobileBottomNav.addEventListener('click', (e) => {
             const btn = e.target.closest('.bottom-nav-item');
@@ -146,7 +347,6 @@ function initEvents() {
         });
     }
 
-    // Search Input & Clear
     let searchTimeout;
     elements.searchInput.addEventListener('input', (e) => {
         const q = e.target.value.trim();
@@ -173,7 +373,6 @@ function initEvents() {
         });
     }
 
-    // Hero Buttons
     elements.heroPlayBtn.addEventListener('click', () => {
         if (STATE.featuredDrama) {
             openPlayer(STATE.featuredDrama, 1);
@@ -186,11 +385,9 @@ function initEvents() {
         }
     });
 
-    // Player Modal Controls
     elements.closePlayerBtn.addEventListener('click', closePlayer);
     elements.closePlayerBackdrop.addEventListener('click', closePlayer);
 
-    // Episode filter search
     elements.epSearchInput.addEventListener('input', (e) => {
         const filterVal = e.target.value.trim().toLowerCase();
         const epButtons = elements.episodeList.querySelectorAll('.ep-btn');
@@ -200,7 +397,6 @@ function initEvents() {
         });
     });
 
-    // Video Navigation Buttons
     elements.prevEpBtn.addEventListener('click', () => {
         if (STATE.activeEpisodeNum > 1) {
             playEpisode(STATE.activeEpisodeNum - 1);
@@ -215,7 +411,6 @@ function initEvents() {
         }
     });
 
-    // Auto-play next episode
     elements.mainVideo.addEventListener('ended', () => {
         if (STATE.activeEpisodeNum < STATE.activeEpisodesList.length) {
             showToast(`Memutar Episode ${STATE.activeEpisodeNum + 1}...`);
@@ -223,7 +418,6 @@ function initEvents() {
         }
     });
 
-    // Proxy Fallback Button
     elements.reloadProxyBtn.addEventListener('click', () => {
         if (STATE.activeDrama) {
             playEpisode(STATE.activeEpisodeNum, true);
@@ -237,12 +431,10 @@ function setCategory(category) {
     elements.searchInput.value = '';
     elements.searchBox.classList.remove('has-text');
 
-    // Sync Desktop Tabs
     elements.navTabs.forEach(t => {
         t.classList.toggle('active', t.dataset.category === category);
     });
 
-    // Sync Mobile Pills
     if (elements.mobileCategoryBar) {
         elements.mobileCategoryBar.querySelectorAll('.cat-pill').forEach(p => {
             p.classList.toggle('active', p.dataset.category === category);
@@ -251,22 +443,6 @@ function setCategory(category) {
 
     updateSectionTitle();
     loadDramas();
-}
-
-async function loadPlatforms() {
-    try {
-        const res = await fetch('/api/platforms');
-        const data = await res.json();
-        if (data.success && data.platforms) {
-            STATE.platforms = data.platforms;
-            if (elements.platformBadgeCount) {
-                elements.platformBadgeCount.textContent = `${data.platforms.length} Aktif`;
-            }
-            renderPlatformDropdown(data.platforms);
-        }
-    } catch (e) {
-        console.error('Error loading platforms:', e);
-    }
 }
 
 function renderPlatformDropdown(platforms) {
@@ -293,6 +469,9 @@ function renderPlatformDropdown(platforms) {
     });
 
     elements.platformList.innerHTML = html;
+    if (elements.platformBadgeCount) {
+        elements.platformBadgeCount.textContent = `${platforms.length} Aktif`;
+    }
 
     elements.platformList.querySelectorAll('.platform-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -314,12 +493,10 @@ function setPlatform(platformId) {
         elements.currentPlatformName.textContent = 'Semua Platform';
     }
 
-    // Sync Dropdown items
     elements.platformList.querySelectorAll('.platform-item').forEach(el => {
         el.classList.toggle('active', el.dataset.id === platformId);
     });
 
-    // Sync Pills
     document.querySelectorAll('.pill').forEach(pill => {
         pill.classList.toggle('active', pill.dataset.platform === platformId);
     });
@@ -347,6 +524,99 @@ function updateSectionTitle() {
     elements.sectionTitle.textContent = title;
 }
 
+// Data Normalization & Extraction
+function extractList(data) {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (typeof data === "object") {
+        for (const key of ["books", "data", "list", "items", "dramas", "results", "dataList", "programList", "vod_list"]) {
+            if (Array.isArray(data[key]) && data[key].length > 0) {
+                return data[key];
+            } else if (data[key] && typeof data[key] === "object" && Array.isArray(data[key].list)) {
+                return data[key].list;
+            }
+        }
+    }
+    return [];
+}
+
+function normalizeCard(item, platformId) {
+    const pInfo = PLATFORM_MAP[platformId] || { name: platformId.toUpperCase(), badge: "HD" };
+    
+    const dramaId = String(
+        item.bookId || item.book_id || item.id || item.vid ||
+        item.vod_id || item.drama_id || item.subject_id || item.movieId || ""
+    );
+    
+    const title = (
+        item.bookName || item.title || item.name ||
+        item.drama_name || item.vod_name || item.video_name ||
+        item.dramaName || "Untitled Drama"
+    );
+    
+    const cover = (
+        item.cover || item.cover_url || item.image || item.thumb ||
+        item.poster || item.img || item.img_landscape_url || item.vod_pic ||
+        item.horizontal_cover || item.vertical_cover || ""
+    );
+    
+    const desc = (
+        item.description || item.synopsis || item.intro ||
+        item.summary || item.brief || ""
+    );
+    
+    const episodes = (
+        item.chapterCount || item.total_episode || item.jumlah_episode || item.episode_final ||
+        item.episodes_count || item.total_chapter || item.episode_num || item.total || null
+    );
+    
+    let tags = item.tagList || item.genres || item.genre || item.labels || item.tags || item.categories || item.category || [];
+    if (typeof tags === "string") {
+        try {
+            const parsed = JSON.parse(tags);
+            if (Array.isArray(parsed)) tags = parsed;
+            else tags = tags.split(",").map(t => t.trim()).filter(Boolean);
+        } catch (e) {
+            tags = tags.split(",").map(t => t.trim()).filter(Boolean);
+        }
+    } else if (Array.isArray(tags)) {
+        tags = tags.map(t => typeof t === "object" ? (t.name || String(t)) : String(t));
+    }
+
+    const rating = item.score || item.rating || "9.8";
+    
+    return {
+        id: dramaId,
+        title: title,
+        cover: cover,
+        description: desc,
+        episodes: episodes,
+        tags: tags.slice(0, 3),
+        rating: rating,
+        platform_id: platformId,
+        platform_name: pInfo.name || platformId,
+        badge: pInfo.badge || "HD"
+    };
+}
+
+async function apiFetch(endpoint, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    const url = `${API_BASE}${endpoint}${q ? '?' + q : ''}`;
+    try {
+        const resp = await fetch(url, { mode: 'cors' });
+        if (resp.ok) {
+            return await resp.json();
+        }
+    } catch (e) {
+        console.warn(`Direct fetch failed for ${endpoint}, trying local proxy:`, e);
+        try {
+            const proxyResp = await fetch(endpoint + (q ? '?' + q : ''));
+            if (proxyResp.ok) return await proxyResp.json();
+        } catch (err) {}
+    }
+    return null;
+}
+
 // Fetch and Render Drama Catalog
 async function loadDramas() {
     elements.dramaGrid.innerHTML = `
@@ -356,19 +626,46 @@ async function loadDramas() {
         </div>
     `;
 
-    try {
-        const url = `/api/browse?platform=${STATE.currentPlatform}&category=${STATE.currentCategory}&page=1`;
-        const res = await fetch(url);
-        const data = await res.json();
+    let targetPlatforms = [];
+    if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
+        targetPlatforms = [STATE.currentPlatform];
+    } else {
+        targetPlatforms = ["goodshort", "lookseries", "donghuaqueen", "dramaqueen", "fundrama", "dramawave", "dramabox", "vigloo", "honey", "bibishort"];
+    }
 
-        if (data.success && data.data && data.data.length > 0) {
-            STATE.dramas = data.data;
-            elements.sectionCount.textContent = `${data.data.length} Judul`;
-            renderGrid(data.data);
+    try {
+        const promises = targetPlatforms.map(async (pId) => {
+            const pCfg = PLATFORM_MAP[pId];
+            if (!pCfg) return [];
+            const eps = pCfg.endpoints || {};
+            const ep = eps[STATE.currentCategory] || eps.foryou || Object.values(eps)[0];
+            if (!ep) return [];
+
+            const pParams = { page: 1 };
+            if (ep.includes("limit") || ep.includes("drama") || ep.includes("donghua")) {
+                pParams.limit = 18;
+            }
+
+            const data = await apiFetch(ep, pParams);
+            const rawItems = extractList(data);
+            return rawItems.map(item => normalizeCard(item, pId));
+        });
+
+        const settled = await Promise.allSettled(promises);
+        let results = [];
+        for (const res of settled) {
+            if (res.status === "fulfilled" && Array.isArray(res.value)) {
+                results.push(...res.value);
+            }
+        }
+
+        if (results.length > 0) {
+            STATE.dramas = results;
+            elements.sectionCount.textContent = `${results.length} Judul`;
+            renderGrid(results);
             
-            // Set Hero Banner
             if (!STATE.featuredDrama || STATE.currentPlatform !== 'all') {
-                setHero(data.data[0]);
+                setHero(results[0]);
             }
         } else {
             elements.dramaGrid.innerHTML = `
@@ -396,13 +693,34 @@ async function performSearch(keyword) {
     `;
     elements.sectionTitle.textContent = `Hasil Pencarian: "${keyword}"`;
 
+    let targetPlatforms = [];
+    if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
+        targetPlatforms = [STATE.currentPlatform];
+    } else {
+        targetPlatforms = ["goodshort", "lookseries", "donghuaqueen", "dramaqueen", "fundrama", "dramawave", "dramabox"];
+    }
+
     try {
-        const res = await fetch(`/api/search?keyword=${encodeURIComponent(keyword)}&platform=${STATE.currentPlatform}`);
-        const data = await res.json();
-        if (data.success && data.data && data.data.length > 0) {
-            STATE.dramas = data.data;
-            elements.sectionCount.textContent = `${data.data.length} Hasil`;
-            renderGrid(data.data);
+        const promises = targetPlatforms.map(async (pId) => {
+            const pCfg = PLATFORM_MAP[pId];
+            if (!pCfg || !pCfg.endpoints || !pCfg.endpoints.search) return [];
+            const data = await apiFetch(pCfg.endpoints.search, { keyword, page: 1 });
+            const rawItems = extractList(data);
+            return rawItems.map(item => normalizeCard(item, pId));
+        });
+
+        const settled = await Promise.allSettled(promises);
+        let allCards = [];
+        for (const res of settled) {
+            if (res.status === "fulfilled" && Array.isArray(res.value)) {
+                allCards.push(...res.value);
+            }
+        }
+
+        if (allCards.length > 0) {
+            STATE.dramas = allCards;
+            elements.sectionCount.textContent = `${allCards.length} Hasil`;
+            renderGrid(allCards);
         } else {
             elements.dramaGrid.innerHTML = `
                 <div class="grid-empty">
@@ -414,8 +732,6 @@ async function performSearch(keyword) {
         console.error('Search error:', e);
     }
 }
-
-const DEFAULT_POSTER = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%23222222"/><stop offset="100%" stop-color="%23111111"/></linearGradient></defs><rect width="300" height="450" fill="url(%23g)"/><rect x="6" y="6" width="288" height="438" rx="6" fill="none" stroke="%23333333" stroke-width="2"/><circle cx="150" cy="180" r="36" fill="%23E50914" opacity="0.85"/><polygon points="144,166 164,180 144,194" fill="%23ffffff"/><text x="150" y="250" fill="%23ffffff" font-family="-apple-system,sans-serif" font-size="15" font-weight="bold" text-anchor="middle">APULA-FLIX</text><text x="150" y="275" fill="%23888888" font-family="-apple-system,sans-serif" font-size="12" text-anchor="middle">Streaming</text></svg>`;
 
 function setHero(drama) {
     STATE.featuredDrama = drama;
@@ -466,7 +782,6 @@ function renderGrid(dramas) {
 
     elements.dramaGrid.innerHTML = html;
 
-    // Attach click events
     elements.dramaGrid.querySelectorAll('.drama-card').forEach(card => {
         card.addEventListener('click', () => {
             const idx = parseInt(card.dataset.index);
@@ -491,26 +806,53 @@ async function openPlayer(drama, episodeNum = 1) {
 
     elements.episodeList.innerHTML = `<div class="grid-loading"><div class="spinner"></div><p>Memuat episode...</p></div>`;
 
-    // Fetch details & episodes
-    try {
-        const res = await fetch(`/api/detail?platform=${drama.platform_id}&id=${drama.id}`);
-        const data = await res.json();
+    const pCfg = PLATFORM_MAP[drama.platform_id];
+    let episodes = [];
+
+    if (pCfg && pCfg.endpoints) {
+        const allepEp = pCfg.endpoints.allepisode;
+        const detailEp = pCfg.endpoints.detail;
         
-        if (data.success && data.episodes && data.episodes.length > 0) {
-            STATE.activeEpisodesList = data.episodes;
-            elements.sidebarEpCount.textContent = `${data.episodes.length} Ep`;
-            renderEpisodesList(data.episodes);
-        } else {
-            STATE.activeEpisodesList = Array.from({length: 30}, (_, i) => ({
-                episode_num: i + 1,
-                episode_id: `${i + 1}`,
-                title: `Episode ${i + 1}`
-            }));
-            renderEpisodesList(STATE.activeEpisodesList);
+        let paramKey = "book_id";
+        if (allepEp && allepEp.includes("vid")) paramKey = "vid";
+        else if (allepEp && allepEp.includes("vod_id")) paramKey = "vod_id";
+        else if (allepEp && allepEp.includes("drama_id")) paramKey = "drama_id";
+
+        try {
+            const epData = allepEp ? await apiFetch(allepEp, { [paramKey]: drama.id }) : null;
+            const rawEpisodes = extractList(epData);
+            
+            if (Array.isArray(rawEpisodes) && rawEpisodes.length > 0) {
+                rawEpisodes.forEach((ep, idx) => {
+                    const epNum = ep.chapterIndex || ep.episode || ep.episode_num || ep.index || (idx + 1);
+                    const epId = String(ep.chapterId || ep.chapter_id || ep.episode_id || ep.eid || ep.id || epNum);
+                    const epTitle = ep.chapterName || ep.title || ep.name || `Episode ${epNum}`;
+                    episodes.push({
+                        episode_num: epNum,
+                        episode_id: epId,
+                        title: epTitle
+                    });
+                });
+            }
+        } catch (e) {
+            console.error('Error loading allepisode:', e);
         }
-    } catch (e) {
-        console.error('Error loading drama detail:', e);
     }
+
+    if (episodes.length === 0) {
+        const total = drama.episodes ? Math.min(parseInt(drama.episodes), 120) : 30;
+        for (let i = 1; i <= total; i++) {
+            episodes.push({
+                episode_num: i,
+                episode_id: String(i),
+                title: `Episode ${i}`
+            });
+        }
+    }
+
+    STATE.activeEpisodesList = episodes;
+    elements.sidebarEpCount.textContent = `${episodes.length} Ep`;
+    renderEpisodesList(episodes);
 
     playEpisode(episodeNum);
 }
@@ -557,52 +899,98 @@ async function playEpisode(episodeNum, forceProxy = false) {
 
     const drama = STATE.activeDrama;
     const epObj = STATE.activeEpisodesList.find(e => e.episode_num === episodeNum);
-    const epId = epObj ? epObj.episode_id : `${episodeNum}`;
+    const epId = epObj ? epObj.episode_id : String(episodeNum);
+    const pCfg = PLATFORM_MAP[drama.platform_id];
+
+    if (!pCfg || !pCfg.endpoints || !pCfg.endpoints.stream) {
+        elements.videoLoadingText.textContent = 'Stream tidak tersedia untuk platform ini.';
+        return;
+    }
+
+    let sParams = {};
+    const platform = drama.platform_id;
+    if (platform === "dramabox") {
+        sParams = { book_id: drama.id, episode_num: episodeNum };
+    } else if (platform === "dramawave") {
+        sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
+    } else if (["dramaqueen", "donghuaqueen", "lookseries", "fundrama"].includes(platform)) {
+        sParams = { [platform === "lookseries" ? "vod_id" : "book_id"]: drama.id, episode: episodeNum };
+    } else if (platform === "hotdrama") {
+        sParams = { vid: drama.id, eid: epId || String(episodeNum) };
+    } else if (["bibishort", "reelai"].includes(platform)) {
+        sParams = { book_id: drama.id, episode_id: epId || String(episodeNum) };
+    } else if (platform === "honey") {
+        sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
+    } else if (["shortmax", "dramarush"].includes(platform)) {
+        sParams = { drama_id: drama.id, episode_index: episodeNum };
+    } else if (platform === "goodshort") {
+        sParams = { book_id: drama.id, episode_index: episodeNum, episode_id: epId || String(episodeNum) };
+    } else {
+        sParams = { book_id: drama.id, episode: episodeNum };
+    }
 
     try {
-        const res = await fetch(`/api/stream?platform=${drama.platform_id}&id=${drama.id}&episode=${episodeNum}&episode_id=${epId}`);
-        const streamData = await res.json();
+        const streamData = await apiFetch(pCfg.endpoints.stream, sParams);
 
-        if (streamData.success && streamData.video_url) {
-            let targetUrl = streamData.video_url;
-            if (forceProxy || streamData.platform === 'dramaqueen' || streamData.platform === 'donghuaqueen') {
-                targetUrl = streamData.proxy_url;
-            }
-
-            elements.videoLoadingText.textContent = 'Memulai pemutaran...';
-
-            if (streamData.stream_type === 'hls' || targetUrl.includes('.m3u8')) {
-                if (Hls.isSupported()) {
-                    const hls = new Hls({
-                        maxBufferLength: 30,
-                        enableWorker: true
-                    });
-                    hls.loadSource(targetUrl);
-                    hls.attachMedia(elements.mainVideo);
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        elements.videoLoading.classList.remove('show');
-                        elements.mainVideo.play().catch(() => {});
-                    });
-                    hls.on(Hls.Events.ERROR, (event, data) => {
-                        if (data.fatal) {
-                            console.warn('HLS error, retrying via proxy...');
-                            hls.destroy();
-                            loadDirectVideo(streamData.proxy_url);
-                        }
-                    });
-                    STATE.hlsInstance = hls;
-                } else if (elements.mainVideo.canPlayType('application/vnd.apple.mpegurl')) {
-                    elements.mainVideo.src = targetUrl;
-                    elements.mainVideo.play().catch(() => {});
-                    elements.videoLoading.classList.remove('show');
+        if (streamData) {
+            let videoUrl = null;
+            let streamType = "mp4";
+            
+            if (typeof streamData === "object") {
+                const d = streamData.data || streamData;
+                videoUrl = (
+                    d.playUrl || d.url || d.videoUrl ||
+                    d.stream_url || d.video_url || d.m3u8 ||
+                    d.encryptUrl || d.play_url || d.proxyUrl
+                );
+                if (!videoUrl && Array.isArray(d.qualities) && d.qualities.length > 0) {
+                    videoUrl = d.qualities[0].url;
                 }
-            } else {
-                loadDirectVideo(targetUrl);
+            } else if (typeof streamData === "string" && streamData.startsWith("http")) {
+                videoUrl = streamData;
             }
-        } else {
-            elements.videoLoadingText.textContent = 'Stream video belum tersedia untuk episode ini.';
-            showToast('Stream video belum tersedia.');
+
+            if (videoUrl) {
+                if (videoUrl.includes(".m3u8")) {
+                    streamType = "hls";
+                }
+
+                elements.videoLoadingText.textContent = 'Memulai pemutaran...';
+
+                if (streamType === 'hls') {
+                    if (Hls.isSupported()) {
+                        const hls = new Hls({
+                            maxBufferLength: 30,
+                            enableWorker: true
+                        });
+                        hls.loadSource(videoUrl);
+                        hls.attachMedia(elements.mainVideo);
+                        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                            elements.videoLoading.classList.remove('show');
+                            elements.mainVideo.play().catch(() => {});
+                        });
+                        hls.on(Hls.Events.ERROR, (event, data) => {
+                            if (data.fatal) {
+                                console.warn('HLS error, retrying direct video...');
+                                hls.destroy();
+                                loadDirectVideo(videoUrl);
+                            }
+                        });
+                        STATE.hlsInstance = hls;
+                    } else if (elements.mainVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                        elements.mainVideo.src = videoUrl;
+                        elements.mainVideo.play().catch(() => {});
+                        elements.videoLoading.classList.remove('show');
+                    }
+                } else {
+                    loadDirectVideo(videoUrl);
+                }
+                return;
+            }
         }
+        
+        elements.videoLoadingText.textContent = 'Stream video belum tersedia untuk episode ini.';
+        showToast('Stream video belum tersedia.');
     } catch (e) {
         console.error('Play episode error:', e);
         elements.videoLoadingText.textContent = 'Gagal memuat link video.';
@@ -617,10 +1005,6 @@ function loadDirectVideo(url) {
         elements.mainVideo.play().catch(() => {});
     };
     elements.mainVideo.onerror = () => {
-        if (!url.includes('/api/proxy_stream')) {
-            elements.mainVideo.src = `/api/proxy_stream?url=${encodeURIComponent(url)}`;
-            elements.mainVideo.play().catch(() => {});
-        }
         elements.videoLoading.classList.remove('show');
     };
 }
@@ -634,14 +1018,6 @@ function closePlayer() {
     }
     elements.mainVideo.pause();
     elements.mainVideo.removeAttribute('src');
-}
-
-function startKeepAlive() {
-    setInterval(async () => {
-        try {
-            await fetch('/api/ping');
-        } catch (e) {}
-    }, 25000);
 }
 
 function showToast(msg) {
