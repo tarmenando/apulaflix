@@ -894,9 +894,9 @@ async function openPlayer(drama, episodeNum = 1) {
             if (Array.isArray(rawEpisodes) && rawEpisodes.length > 0) {
                 rawEpisodes.forEach((ep, idx) => {
                     const epNum = ep.chapterIndex || ep.number_episode || ep.episode || ep.episode_num || ep.index || ep.ep || (idx + 1);
-                    const epId = String(ep.chapterId || ep.chapter_id || ep.episode_id || ep.id || ep.eid || ep.nid || epNum);
+                    const epId = String(ep.episodeId || ep.episode_id || ep.chapterId || ep.chapter_id || ep.id || ep.eid || ep.nid || epNum);
                     const epTitle = ep.chapterName || ep.title || ep.name || ep.ep_title || `Episode ${epNum}`;
-                    let directUrl = ep.link_720 || ep.link720_pro || ep.link720_a || ep.video_url || null;
+                    let directUrl = ep.playUrl || ep.play_url || ep.videoUrl || ep.video_url || ep.stream_url || ep.link_720 || ep.link720_pro || ep.link720_a || null;
                     if (directUrl) {
                         directUrl = sanitizeMediaUrl(directUrl, drama.platform_id);
                     }
@@ -978,9 +978,33 @@ async function playEpisode(episodeNum, forceProxy = false) {
     const epObj = STATE.activeEpisodesList.find(e => e.episode_num === episodeNum);
     const epId = epObj ? epObj.episode_id : String(episodeNum);
     
-    // If we already have a direct MP4 link from allepisode (e.g. DonghuaQueen, DramaQueen)
+    // If we already have a direct stream link from allepisode (e.g. BibiShort, DonghuaQueen, DramaQueen)
     if (epObj && epObj.direct_url && !forceProxy) {
-        loadDirectVideo(epObj.direct_url);
+        const isHls = epObj.direct_url.includes(".m3u8");
+        if (isHls) {
+            elements.videoLoadingText.textContent = 'Memulai pemutaran HLS...';
+            if (Hls.isSupported()) {
+                const hls = new Hls({ maxBufferLength: 30, enableWorker: true });
+                hls.loadSource(epObj.direct_url);
+                hls.attachMedia(elements.mainVideo);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    elements.videoLoading.classList.remove('show');
+                    elements.mainVideo.play().catch(() => {});
+                });
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        elements.videoLoading.classList.remove('show');
+                    }
+                });
+                STATE.hlsInstance = hls;
+            } else if (elements.mainVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                elements.mainVideo.src = epObj.direct_url;
+                elements.mainVideo.play().catch(() => {});
+                elements.videoLoading.classList.remove('show');
+            }
+        } else {
+            loadDirectVideo(epObj.direct_url);
+        }
         return;
     }
 
@@ -992,7 +1016,9 @@ async function playEpisode(episodeNum, forceProxy = false) {
 
     let sParams = {};
     const platform = drama.platform_id;
-    if (platform === "dramabox") {
+    if (platform === "bibishort") {
+        sParams = { book_id: drama.id, episode_id: epId || String(episodeNum) };
+    } else if (platform === "dramabox") {
         sParams = { book_id: drama.id, episode_num: episodeNum };
     } else if (platform === "dramawave") {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
