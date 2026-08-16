@@ -1305,33 +1305,6 @@ async function playEpisode(episodeNum, forceProxy = false) {
         return;
     }
 
-    const platform = drama.platform_id;
-    if (platform === "shortmax") {
-        const streamUrl = `/api/shortmax_v2/stream?drama_id=${encodeURIComponent(drama.id)}&episode_index=${episodeNum}`;
-        elements.videoLoadingText.textContent = 'Memulai pemutaran HLS...';
-        if (Hls.isSupported()) {
-            const hls = new Hls({ maxBufferLength: 30, enableWorker: true });
-            hls.loadSource(streamUrl);
-            hls.attachMedia(elements.mainVideo);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                elements.videoLoading.classList.remove('show');
-                elements.mainVideo.play().catch(() => {});
-            });
-            hls.on(Hls.Events.ERROR, (event, data) => {
-                if (data.fatal) {
-                    elements.videoLoading.classList.remove('show');
-                    showToast('Stream video belum tersedia di server hulu untuk episode ini.', 'error');
-                }
-            });
-            STATE.hlsInstance = hls;
-        } else if (elements.mainVideo.canPlayType('application/vnd.apple.mpegurl')) {
-            elements.mainVideo.src = streamUrl;
-            elements.mainVideo.play().catch(() => {});
-            elements.videoLoading.classList.remove('show');
-        }
-        return;
-    }
-
     let sParams = {};
     if (platform === "bibishort") {
         sParams = { book_id: drama.id, episode_id: epId || String(episodeNum) };
@@ -1345,6 +1318,8 @@ async function playEpisode(episodeNum, forceProxy = false) {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
     } else if (platform === "goodshort") {
         sParams = { book_id: drama.id, episode_index: episodeNum, episode_id: epId || String(episodeNum) };
+    } else if (platform === "shortmax") {
+        sParams = { drama_id: drama.id, episode_index: episodeNum, episode_id: epId || String(episodeNum) };
     } else {
         sParams = { book_id: drama.id, episode: episodeNum };
     }
@@ -1364,7 +1339,8 @@ async function playEpisode(episodeNum, forceProxy = false) {
 
             if (typeof d === "object" && d !== null) {
                 videoUrl = (
-                    d.playUrl || d.url || d.videoUrl ||
+                    d.videoUrl || d.playUrl || d.url ||
+                    (d.qualities && (d.qualities.video_720 || d.qualities.video_1080 || d.qualities.video_480)) ||
                     d.stream_url || d.video_url || d.m3u8 ||
                     d.video_url_raw || d.link_720 || d.link720_pro ||
                     d.encryptUrl || d.play_url || d.proxyUrl
