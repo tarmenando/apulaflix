@@ -137,9 +137,13 @@ export async function onRequest(context) {
         }
     }
 
-    // 3. Generic /api/* Proxy with Ultra-Fast Intelligent Routing
+    // 3. Generic /api/* Proxy with Intelligent Direct Routing
+    // Platforms with active, high-speed endpoints on backup server
     const isExclusiveToBackup = (
         pathString.startsWith("sodareels") ||
+        pathString.startsWith("shortmax") ||
+        pathString.startsWith("goodshort") ||
+        pathString.startsWith("dotdrama") ||
         pathString.startsWith("donghuaqueen") ||
         pathString.startsWith("dramaqueen") ||
         pathString.startsWith("lookseries") ||
@@ -159,7 +163,7 @@ export async function onRequest(context) {
 
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 2000); // 2.0s fast failover
+            const timeout = setTimeout(() => controller.abort(), 2000);
             
             const response = await fetch(primaryTargetUrl, {
                 method: request.method,
@@ -184,7 +188,7 @@ export async function onRequest(context) {
         } catch (err) {}
     }
 
-    // Backup Server Fallback with generous timeout (12 seconds)
+    // Backup Server Proxy with generous timeout (12 seconds)
     const backupTargetUrl = `${BACKUP_BASE}/api/${pathString}${url.search}`;
     try {
         const controller2 = new AbortController();
