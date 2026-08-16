@@ -138,47 +138,57 @@ export async function onRequest(context) {
         }
     }
 
-    // 3. Generic /api/* Proxy with Primary (nunodrama) -> Backup (redmi) Failover
-    const primaryTargetUrl = `${PRIMARY_BASE}/api/${pathString}${url.search}`;
-    const directHeaders = {
-        "User-Agent": DEFAULT_HEADERS["User-Agent"],
-        "Accept": "application/json, text/plain, */*",
-        "Authorization": `Bearer ${API_TOKEN}`,
-        "x-api-token": API_TOKEN,
-        "Referer": PRIMARY_BASE + "/"
-    };
+    // 3. Generic /api/* Proxy with Intelligent Routing
+    // Platforms exclusive to backup server (skip primary to avoid timeout)
+    const isExclusiveToBackup = (
+        pathString.startsWith("donghuaqueen") ||
+        pathString.startsWith("dramaqueen") ||
+        pathString.startsWith("lookseries") ||
+        pathString.startsWith("honey")
+    );
 
-    try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 4000);
-        
-        const response = await fetch(primaryTargetUrl, {
-            method: request.method,
-            headers: directHeaders,
-            redirect: "follow",
-            signal: controller.signal
-        });
-        clearTimeout(timeout);
+    if (!isExclusiveToBackup) {
+        const primaryTargetUrl = `${PRIMARY_BASE}/api/${pathString}${url.search}`;
+        const directHeaders = {
+            "User-Agent": DEFAULT_HEADERS["User-Agent"],
+            "Accept": "application/json, text/plain, */*",
+            "Authorization": `Bearer ${API_TOKEN}`,
+            "x-api-token": API_TOKEN,
+            "Referer": PRIMARY_BASE + "/"
+        };
 
-        if (response.ok) {
-            const responseHeaders = new Headers(response.headers);
-            responseHeaders.set("Access-Control-Allow-Origin", "*");
-            responseHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
-            responseHeaders.set("Access-Control-Allow-Headers", "*");
-
-            return new Response(response.body, {
-                status: response.status,
-                statusText: response.statusText,
-                headers: responseHeaders
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 4500);
+            
+            const response = await fetch(primaryTargetUrl, {
+                method: request.method,
+                headers: directHeaders,
+                redirect: "follow",
+                signal: controller.signal
             });
-        }
-    } catch (err) {}
+            clearTimeout(timeout);
 
-    // Fallback to Backup Server
+            if (response.ok) {
+                const responseHeaders = new Headers(response.headers);
+                responseHeaders.set("Access-Control-Allow-Origin", "*");
+                responseHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
+                responseHeaders.set("Access-Control-Allow-Headers", "*");
+
+                return new Response(response.body, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: responseHeaders
+                });
+            }
+        } catch (err) {}
+    }
+
+    // Backup Server Proxy with generous timeout
     const backupTargetUrl = `${BACKUP_BASE}/api/${pathString}${url.search}`;
     try {
         const controller2 = new AbortController();
-        const timeout2 = setTimeout(() => controller2.abort(), 4000);
+        const timeout2 = setTimeout(() => controller2.abort(), 10000);
 
         const backupResp = await fetch(backupTargetUrl, {
             method: request.method,

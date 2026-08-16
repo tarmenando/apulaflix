@@ -962,7 +962,12 @@ async function openPlayer(drama, episodeNum = 1) {
         else if (drama.platform_id === "shortmax") paramKey = "drama_id";
 
         try {
-            const epData = allepEp ? await apiFetch(allepEp, { [paramKey]: drama.id }) : null;
+            let epData = null;
+            if (drama.platform_id === "donghuaqueen" || drama.platform_id === "dramaqueen") {
+                epData = await apiFetch(pCfg.endpoints.detail, { book_id: drama.id });
+            } else if (allepEp) {
+                epData = await apiFetch(allepEp, { [paramKey]: drama.id });
+            }
             const rawEpisodes = extractList(epData);
             
             if (Array.isArray(rawEpisodes) && rawEpisodes.length > 0) {
