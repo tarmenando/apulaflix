@@ -505,9 +505,15 @@ function initEvents() {
         }
     });
 
-    elements.closePlayerBtn.addEventListener('closePlayerBtn', closePlayer);
     elements.closePlayerBtn.addEventListener('click', closePlayer);
     elements.closePlayerBackdrop.addEventListener('click', closePlayer);
+
+    // Keyboard Escape to close player modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && elements.playerModal.classList.contains('open')) {
+            closePlayer();
+        }
+    });
 
     elements.epSearchInput.addEventListener('input', (e) => {
         const filterVal = e.target.value.trim().toLowerCase();
@@ -896,10 +902,11 @@ async function loadDramas() {
 }
 
 async function performSearch(keyword) {
+    const safeKeyword = keyword.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     elements.dramaGrid.innerHTML = `
         <div class="grid-loading">
             <div class="spinner"></div>
-            <p>Mencari "${keyword}"...</p>
+            <p>Mencari "${safeKeyword}"...</p>
         </div>
     `;
     if (elements.paginationContainer) elements.paginationContainer.innerHTML = '';
@@ -910,7 +917,7 @@ async function performSearch(keyword) {
     if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
         targetPlatforms = [STATE.currentPlatform];
     } else {
-        targetPlatforms = ["sodareels", "dramawave", "dramabox", "shortmax", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "goodshort", "honey", "dotdrama"];
+        targetPlatforms = ["sodareels", "dramawave", "dramabox", "shortmax", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "goodshort", "honey", "dotdrama", "minishort", "shorten", "soreel", "fundrama", "bibishort"];
     }
 
     try {
@@ -936,7 +943,7 @@ async function performSearch(keyword) {
         } else {
             elements.dramaGrid.innerHTML = `
                 <div class="grid-empty">
-                    <p>Tidak ada judul drama yang cocok dengan "${keyword}".</p>
+                    <p>Tidak ada judul drama yang cocok dengan "${safeKeyword}".</p>
                 </div>
             `;
             if (elements.paginationContainer) elements.paginationContainer.innerHTML = '';
@@ -1068,18 +1075,22 @@ function renderPagination(totalItems, currentPage, itemsPerPage) {
 }
 
 function renderGrid(dramas, baseIndex = 0) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     let html = '';
     dramas.forEach((item, idx) => {
         const actualIdx = baseIndex + idx;
         const coverImg = (item.cover && item.cover.startsWith('http')) ? item.cover : DEFAULT_POSTER;
         const epBadge = item.episodes ? `${item.episodes} Ep` : 'HD';
         const tagText = item.tags && item.tags.length ? item.tags.join(', ') : item.platform_name;
+        const safeTitle = esc(item.title);
+        const safePlatform = esc(item.platform_name || 'Drama');
+        const safeTags = esc(tagText);
 
         html += `
             <div class="drama-card" data-index="${actualIdx}">
                 <div class="card-poster-wrapper">
-                    <img class="card-poster" src="${coverImg}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${DEFAULT_POSTER}'">
-                    <span class="card-platform-tag">${item.platform_name || 'Drama'}</span>
+                    <img class="card-poster" src="${coverImg}" alt="${safeTitle}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${DEFAULT_POSTER}'">
+                    <span class="card-platform-tag">${safePlatform}</span>
                     <span class="card-ep-badge">${epBadge}</span>
                     <div class="card-play-overlay">
                         <div class="play-circle">
@@ -1088,9 +1099,9 @@ function renderGrid(dramas, baseIndex = 0) {
                     </div>
                 </div>
                 <div class="card-info">
-                    <h3 class="card-title" title="${item.title}">${item.title}</h3>
+                    <h3 class="card-title" title="${safeTitle}">${safeTitle}</h3>
                     <div class="card-meta-row">
-                        <span class="card-tags">${tagText}</span>
+                        <span class="card-tags">${safeTags}</span>
                     </div>
                 </div>
             </div>

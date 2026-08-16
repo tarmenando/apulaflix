@@ -142,15 +142,12 @@ export async function onRequest(context) {
     }
 
     // 3. Generic /api/* Proxy with Intelligent Direct Routing
-    // Platforms with active, high-speed endpoints on backup server
+    // Platforms with active, high-speed endpoints ONLY on backup server (primary doesn't have them or is slower)
     const isExclusiveToBackup = (
         pathString.startsWith("sodareels") ||
         pathString.startsWith("shortmax") ||
-        pathString.startsWith("goodshort") ||
-        pathString.startsWith("dotdrama") ||
         pathString.startsWith("donghuaqueen") ||
         pathString.startsWith("dramaqueen") ||
-        pathString.startsWith("lookseries") ||
         pathString.startsWith("honey") ||
         pathString.startsWith("fundrama")
     );
@@ -167,7 +164,7 @@ export async function onRequest(context) {
 
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 2000);
+            const timeout = setTimeout(() => controller.abort(), 8000);
             
             const response = await fetch(primaryTargetUrl, {
                 method: request.method,
