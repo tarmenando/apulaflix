@@ -1037,13 +1037,17 @@ async function playEpisode(episodeNum, forceProxy = false) {
                 // Ensure HTTPS
                 videoUrl = sanitizeMediaUrl(videoUrl, platform);
 
-                // Detect if it is HLS .m3u8
-                if (videoUrl.includes(".m3u8")) {
+                const isM3u8 = videoUrl.includes(".m3u8") || videoUrl.includes("/proxy_stream");
+                const isDirectMp4 = videoUrl.includes(".mp4") || videoUrl.includes("proxy_video") || videoUrl.includes("whatbox.ca");
+
+                if (isM3u8 && !isDirectMp4) {
                     streamType = "hls";
                     // For DramaWave or CORS-restricted HLS, route through CORS proxy
                     if (videoUrl.includes("mydramawave.com") || platform === "dramawave") {
                         videoUrl = `/api/proxy_stream?url=${encodeURIComponent(videoUrl)}`;
                     }
+                } else {
+                    streamType = "mp4";
                 }
 
                 elements.videoLoadingText.textContent = 'Memulai pemutaran...';
@@ -1062,9 +1066,9 @@ async function playEpisode(episodeNum, forceProxy = false) {
                         });
                         hls.on(Hls.Events.ERROR, (event, data) => {
                             if (data.fatal) {
-                                console.warn('HLS error, retrying direct video...');
-                                hls.destroy();
-                                loadDirectVideo(videoUrl);
+                                console.warn('HLS stream error:', data.type);
+                                elements.videoLoadingText.textContent = 'Gagal memuat stream video HLS.';
+                                elements.videoLoading.classList.remove('show');
                             }
                         });
                         STATE.hlsInstance = hls;
@@ -1096,12 +1100,17 @@ function loadDirectVideo(url) {
     }
     const safeUrl = sanitizeMediaUrl(url, STATE.activeDrama ? STATE.activeDrama.platform_id : 'donghuaqueen');
     elements.mainVideo.src = safeUrl;
+    elements.mainVideo.oncanplay = () => {
+        elements.videoLoading.classList.remove('show');
+        elements.mainVideo.play().catch(() => {});
+    };
     elements.mainVideo.onloadeddata = () => {
         elements.videoLoading.classList.remove('show');
         elements.mainVideo.play().catch(() => {});
     };
-    elements.mainVideo.onerror = () => {
+    elements.mainVideo.onerror = (e) => {
         elements.videoLoading.classList.remove('show');
+        console.warn('Direct video error:', e);
     };
 }
 
