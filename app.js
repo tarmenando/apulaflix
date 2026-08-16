@@ -313,6 +313,21 @@ const elements = {
     toast: document.getElementById('toast')
 };
 
+// URL Sanitizer to prevent Mixed Content (HTTP on HTTPS)
+function sanitizeMediaUrl(url, platform = 'donghuaqueen') {
+    if (!url || typeof url !== 'string') return '';
+    if (url.startsWith('http://')) {
+        if (platform === 'lookseries') {
+            return `https://redmi.nunodrama.my.id/api/lookseries/proxy?url=${encodeURIComponent(url)}`;
+        } else if (platform === 'dramaqueen') {
+            return `https://redmi.nunodrama.my.id/api/dramaqueen/proxy_video?url=${encodeURIComponent(url)}`;
+        } else {
+            return `https://redmi.nunodrama.my.id/api/donghuaqueen/proxy_video?url=${encodeURIComponent(url)}`;
+        }
+    }
+    return url;
+}
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     initEvents();
@@ -607,11 +622,14 @@ function normalizeCard(item, platformId) {
         item.dramaName || "Untitled Drama"
     );
     
-    const cover = (
+    let cover = (
         item.cover || item.cover_url || item.image || item.thumb ||
         item.poster || item.img || item.img_landscape_url || item.vod_pic ||
         item.horizontal_cover || item.vertical_cover || ""
     );
+    if (cover && cover.startsWith('http://')) {
+        cover = cover.replace('http://', 'https://');
+    }
     
     const desc = (
         item.description || item.synopsis || item.intro ||
@@ -878,7 +896,10 @@ async function openPlayer(drama, episodeNum = 1) {
                     const epNum = ep.chapterIndex || ep.number_episode || ep.episode || ep.episode_num || ep.index || ep.ep || (idx + 1);
                     const epId = String(ep.chapterId || ep.chapter_id || ep.episode_id || ep.id || ep.eid || ep.nid || epNum);
                     const epTitle = ep.chapterName || ep.title || ep.name || ep.ep_title || `Episode ${epNum}`;
-                    const directUrl = ep.link_720 || ep.link720_pro || ep.link720_a || ep.video_url || null;
+                    let directUrl = ep.link_720 || ep.link720_pro || ep.link720_a || ep.video_url || null;
+                    if (directUrl) {
+                        directUrl = sanitizeMediaUrl(directUrl, drama.platform_id);
+                    }
                     
                     episodes.push({
                         episode_num: epNum,
@@ -1012,6 +1033,9 @@ async function playEpisode(episodeNum, forceProxy = false) {
             }
 
             if (videoUrl) {
+                // Sanitize URL to ensure HTTPS
+                videoUrl = sanitizeMediaUrl(videoUrl, platform);
+
                 if (videoUrl.includes(".m3u8")) {
                     streamType = "hls";
                 }
@@ -1060,7 +1084,8 @@ async function playEpisode(episodeNum, forceProxy = false) {
 }
 
 function loadDirectVideo(url) {
-    elements.mainVideo.src = url;
+    const safeUrl = sanitizeMediaUrl(url, STATE.activeDrama ? STATE.activeDrama.platform_id : 'donghuaqueen');
+    elements.mainVideo.src = safeUrl;
     elements.mainVideo.onloadeddata = () => {
         elements.videoLoading.classList.remove('show');
         elements.mainVideo.play().catch(() => {});
