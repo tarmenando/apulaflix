@@ -811,12 +811,12 @@ async function openPlayer(drama, episodeNum = 1) {
 
     if (pCfg && pCfg.endpoints) {
         const allepEp = pCfg.endpoints.allepisode;
-        const detailEp = pCfg.endpoints.detail;
         
         let paramKey = "book_id";
-        if (allepEp && allepEp.includes("vid")) paramKey = "vid";
-        else if (allepEp && allepEp.includes("vod_id")) paramKey = "vod_id";
-        else if (allepEp && allepEp.includes("drama_id")) paramKey = "drama_id";
+        if (drama.platform_id === "lookseries") paramKey = "vod_id";
+        else if (drama.platform_id === "hotdrama") paramKey = "vid";
+        else if (drama.platform_id === "shortmax") paramKey = "drama_id";
+        else if (drama.platform_id === "vigloo") paramKey = "video_id";
 
         try {
             const epData = allepEp ? await apiFetch(allepEp, { [paramKey]: drama.id }) : null;
@@ -824,9 +824,9 @@ async function openPlayer(drama, episodeNum = 1) {
             
             if (Array.isArray(rawEpisodes) && rawEpisodes.length > 0) {
                 rawEpisodes.forEach((ep, idx) => {
-                    const epNum = ep.chapterIndex || ep.episode || ep.episode_num || ep.index || (idx + 1);
-                    const epId = String(ep.chapterId || ep.chapter_id || ep.episode_id || ep.eid || ep.id || epNum);
-                    const epTitle = ep.chapterName || ep.title || ep.name || `Episode ${epNum}`;
+                    const epNum = ep.chapterIndex || ep.episode || ep.episode_num || ep.index || ep.ep || (idx + 1);
+                    const epId = String(ep.chapterId || ep.chapter_id || ep.episode_id || ep.eid || ep.id || ep.nid || epNum);
+                    const epTitle = ep.chapterName || ep.title || ep.name || ep.ep_title || `Episode ${epNum}`;
                     episodes.push({
                         episode_num: epNum,
                         episode_id: epId,
@@ -840,7 +840,7 @@ async function openPlayer(drama, episodeNum = 1) {
     }
 
     if (episodes.length === 0) {
-        const total = drama.episodes ? Math.min(parseInt(drama.episodes), 120) : 30;
+        const total = drama.episodes ? Math.min(parseInt(drama.episodes) || 30, 120) : 30;
         for (let i = 1; i <= total; i++) {
             episodes.push({
                 episode_num: i,
@@ -913,18 +913,22 @@ async function playEpisode(episodeNum, forceProxy = false) {
         sParams = { book_id: drama.id, episode_num: episodeNum };
     } else if (platform === "dramawave") {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
-    } else if (["dramaqueen", "donghuaqueen", "lookseries", "fundrama"].includes(platform)) {
-        sParams = { [platform === "lookseries" ? "vod_id" : "book_id"]: drama.id, episode: episodeNum };
+    } else if (platform === "lookseries") {
+        sParams = { vod_id: drama.id, episode: episodeNum };
     } else if (platform === "hotdrama") {
         sParams = { vid: drama.id, eid: epId || String(episodeNum) };
-    } else if (["bibishort", "reelai"].includes(platform)) {
+    } else if (platform === "shortmax") {
+        sParams = { drama_id: drama.id, episode_index: episodeNum };
+    } else if (platform === "vigloo") {
+        sParams = { season_id: drama.id, episode_num: episodeNum };
+    } else if (platform === "bibishort" || platform === "reelai") {
         sParams = { book_id: drama.id, episode_id: epId || String(episodeNum) };
     } else if (platform === "honey") {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
-    } else if (["shortmax", "dramarush"].includes(platform)) {
-        sParams = { drama_id: drama.id, episode_index: episodeNum };
     } else if (platform === "goodshort") {
         sParams = { book_id: drama.id, episode_index: episodeNum, episode_id: epId || String(episodeNum) };
+    } else if (["dramaqueen", "donghuaqueen", "fundrama"].includes(platform)) {
+        sParams = { book_id: drama.id, episode: episodeNum };
     } else {
         sParams = { book_id: drama.id, episode: episodeNum };
     }
