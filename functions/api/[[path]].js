@@ -12,52 +12,9 @@ const DEFAULT_HEADERS = {
 
 const PLATFORMS_CONFIG = [
     {
-        id: "lookseries",
-        name: "LookSeries",
-        badge: "Film & Series",
-        icon: "🎬",
-        endpoints: {
-            foryou: "/api/lookseries/foryou",
-            film: "/api/lookseries/film",
-            series: "/api/lookseries/series",
-            kartun: "/api/lookseries/kartun",
-            search: "/api/lookseries/search",
-            detail: "/api/lookseries/detail",
-            allepisode: "/api/lookseries/allepisode",
-            stream: "/api/lookseries/stream"
-        }
-    },
-    {
-        id: "donghuaqueen",
-        name: "DonghuaQueen",
-        badge: "Donghua / Anime",
-        icon: "🐉",
-        endpoints: {
-            foryou: "/api/donghuaqueen/donghua",
-            search: "/api/donghuaqueen/search",
-            detail: "/api/donghuaqueen/detail",
-            allepisode: "/api/donghuaqueen/allepisode",
-            stream: "/api/donghuaqueen/stream"
-        }
-    },
-    {
-        id: "dramaqueen",
-        name: "DramaQueen",
-        badge: "Drakor / Series",
-        icon: "👑",
-        endpoints: {
-            foryou: "/api/dramaqueen/drama",
-            movie: "/api/dramaqueen/movie",
-            search: "/api/dramaqueen/search",
-            detail: "/api/dramaqueen/detail",
-            allepisode: "/api/dramaqueen/allepisode",
-            stream: "/api/dramaqueen/stream"
-        }
-    },
-    {
         id: "dramawave",
         name: "DramaWave",
-        badge: "Popular",
+        badge: "Popular (HLS)",
         icon: "🌊",
         endpoints: {
             foryou: "/api/dramawave/trending",
@@ -88,16 +45,50 @@ const PLATFORMS_CONFIG = [
         }
     },
     {
-        id: "fundrama",
-        name: "FunDrama",
-        badge: "Comedy & Action",
-        icon: "🎉",
+        id: "lookseries",
+        name: "LookSeries",
+        badge: "Film & Series",
+        icon: "🎬",
         endpoints: {
-            foryou: "/api/fundrama/foryou",
-            search: "/api/fundrama/search",
-            detail: "/api/fundrama/detail",
-            allepisode: "/api/fundrama/allepisode",
-            stream: "/api/fundrama/stream"
+            foryou: "/api/lookseries/foryou",
+            trending: "/api/lookseries/foryou",
+            film: "/api/lookseries/film",
+            series: "/api/lookseries/series",
+            kartun: "/api/lookseries/kartun",
+            search: "/api/lookseries/search",
+            detail: "/api/lookseries/detail",
+            allepisode: "/api/lookseries/allepisode",
+            stream: "/api/lookseries/stream"
+        }
+    },
+    {
+        id: "donghuaqueen",
+        name: "DonghuaQueen",
+        badge: "Donghua / Anime",
+        icon: "🐉",
+        endpoints: {
+            foryou: "/api/donghuaqueen/donghua",
+            trending: "/api/donghuaqueen/donghua",
+            donghua: "/api/donghuaqueen/donghua",
+            search: "/api/donghuaqueen/search",
+            detail: "/api/donghuaqueen/detail",
+            allepisode: "/api/donghuaqueen/allepisode",
+            stream: "/api/donghuaqueen/stream"
+        }
+    },
+    {
+        id: "dramaqueen",
+        name: "DramaQueen",
+        badge: "Drakor / Series",
+        icon: "👑",
+        endpoints: {
+            foryou: "/api/dramaqueen/drama",
+            trending: "/api/dramaqueen/drama",
+            movie: "/api/dramaqueen/movie",
+            search: "/api/dramaqueen/search",
+            detail: "/api/dramaqueen/detail",
+            allepisode: "/api/dramaqueen/allepisode",
+            stream: "/api/dramaqueen/stream"
         }
     },
     {
@@ -107,6 +98,7 @@ const PLATFORMS_CONFIG = [
         icon: "⭐",
         endpoints: {
             foryou: "/api/goodshort/foryou",
+            trending: "/api/goodshort/foryou",
             search: "/api/goodshort/search",
             detail: "/api/goodshort/detail",
             allepisode: "/api/goodshort/allepisode",
@@ -120,56 +112,10 @@ const PLATFORMS_CONFIG = [
         icon: "💎",
         endpoints: {
             foryou: "/api/vigloo/foryou",
+            trending: "/api/vigloo/foryou",
             detail: "/api/vigloo/detail",
             allepisode: "/api/vigloo/allepisode",
             stream: "/api/vigloo/stream"
-        }
-    },
-    {
-        id: "reelshort",
-        name: "ReelShort",
-        badge: "Short Romance",
-        icon: "⚡",
-        endpoints: {
-            foryou: "/api/reelshort/foryou",
-            trending: "/api/reelshort/terbaru",
-            dub: "/api/reelshort/dub",
-            lovestory: "/api/reelshort/lovestory",
-            search: "/api/reelshort/search",
-            detail: "/api/reelshort/detail",
-            allepisode: "/api/reelshort/allepisode",
-            stream: "/api/reelshort/stream"
-        }
-    },
-    {
-        id: "hotdrama",
-        name: "HotDrama",
-        badge: "Trending",
-        icon: "🔥",
-        endpoints: {
-            foryou: "/api/hotdrama/foryou",
-            trending: "/api/hotdrama/trending",
-            hot: "/api/hotdrama/hot",
-            new: "/api/hotdrama/new",
-            vip: "/api/hotdrama/vip",
-            search: "/api/hotdrama/search",
-            detail: "/api/hotdrama/detail",
-            allepisode: "/api/hotdrama/allepisode",
-            stream: "/api/hotdrama/stream"
-        }
-    },
-    {
-        id: "bibishort",
-        name: "BibiShort",
-        badge: "Mini Series",
-        icon: "📱",
-        endpoints: {
-            foryou: "/api/bibishort/foryou",
-            home: "/api/bibishort/home",
-            search: "/api/bibishort/search",
-            detail: "/api/bibishort/detail",
-            allepisode: "/api/bibishort/allepisode",
-            stream: "/api/bibishort/stream"
         }
     },
     {
@@ -179,6 +125,7 @@ const PLATFORMS_CONFIG = [
         icon: "🍯",
         endpoints: {
             foryou: "/api/honey/foryou",
+            trending: "/api/honey/foryou",
             recommend: "/api/honey/recommend",
             search: "/api/honey/search",
             detail: "/api/honey/detail",
@@ -187,16 +134,46 @@ const PLATFORMS_CONFIG = [
         }
     },
     {
-        id: "shortmax",
-        name: "ShortMax",
-        badge: "HD Drama",
-        icon: "🚀",
+        id: "netshort",
+        name: "NetShort",
+        badge: "Sulih Suara",
+        icon: "⚡",
         endpoints: {
-            foryou: "/api/shortmax/foryou",
-            search: "/api/shortmax/search",
-            detail: "/api/shortmax/detail",
-            allepisode: "/api/shortmax/allepisode",
-            stream: "/api/shortmax/stream"
+            foryou: "/api/netshort/foryou",
+            trending: "/api/netshort/foryou",
+            search: "/api/netshort/search",
+            detail: "/api/netshort/detail",
+            allepisode: "/api/netshort/allepisode",
+            stream: "/api/netshort/stream"
+        }
+    },
+    {
+        id: "fundrama",
+        name: "FunDrama",
+        badge: "Comedy & Action",
+        icon: "🎉",
+        endpoints: {
+            foryou: "/api/fundrama/foryou",
+            trending: "/api/fundrama/foryou",
+            search: "/api/fundrama/search",
+            detail: "/api/fundrama/detail",
+            allepisode: "/api/fundrama/allepisode",
+            stream: "/api/fundrama/stream"
+        }
+    },
+    {
+        id: "bibishort",
+        name: "BibiShort",
+        badge: "Mini Series",
+        icon: "📱",
+        endpoints: {
+            foryou: "/api/bibishort/foryou",
+            trending: "/api/bibishort/foryou",
+            home: "/api/bibishort/home",
+            search: "/api/bibishort/search",
+            detail: "/api/bibishort/detail",
+            allepisode: "/api/bibishort/allepisode",
+            stream: "/api/bibishort/stream"
         }
     }
 ];
@@ -245,11 +222,19 @@ function extractList(data) {
     if (!data) return [];
     if (Array.isArray(data)) return data;
     if (typeof data === "object") {
-        for (const key of ["books", "data", "list", "items", "dramas", "results", "dataList", "programList", "vod_list"]) {
+        if (data.data && typeof data.data === "object") {
+            if (Array.isArray(data.data)) return data.data;
+            if (Array.isArray(data.data.episodes)) return data.data.episodes;
+            if (Array.isArray(data.data.list)) return data.data.list;
+            if (Array.isArray(data.data.items)) return data.data.items;
+        }
+        for (const key of ["books", "data", "list", "items", "dramas", "results", "dataList", "programList", "vod_list", "episodes", "chapterList"]) {
             if (Array.isArray(data[key]) && data[key].length > 0) {
                 return data[key];
             } else if (data[key] && typeof data[key] === "object" && Array.isArray(data[key].list)) {
                 return data[key].list;
+            } else if (data[key] && typeof data[key] === "object" && Array.isArray(data[key].episodes)) {
+                return data[key].episodes;
             }
         }
     }
@@ -261,7 +246,7 @@ function normalizeCard(item, platformId) {
     
     const dramaId = String(
         item.bookId || item.book_id || item.id || item.vid ||
-        item.vod_id || item.drama_id || item.subject_id || item.movieId || ""
+        item.vod_id || item.drama_id || item.dramaId || item.subject_id || item.movieId || ""
     );
     
     const title = (
@@ -283,10 +268,10 @@ function normalizeCard(item, platformId) {
     
     const episodes = (
         item.chapterCount || item.total_episode || item.jumlah_episode || item.episode_final ||
-        item.episodes_count || item.total_chapter || item.episode_num || item.total || null
+        item.num_videos || item.episodes_count || item.total_chapter || item.episode_num || item.total || null
     );
     
-    let tags = item.tagList || item.genres || item.genre || item.tags || item.categories || [];
+    let tags = item.tagList || item.genres || item.genre || item.labels || item.tags || item.categories || item.category || [];
     if (typeof tags === "string") {
         try {
             const parsed = JSON.parse(tags);
@@ -362,7 +347,7 @@ export async function onRequest(context) {
         if (platform !== "all" && PLATFORM_MAP[platform]) {
             targetPlatforms = [platform];
         } else {
-            targetPlatforms = ["lookseries", "donghuaqueen", "dramaqueen", "fundrama", "goodshort", "dramawave", "dramabox"];
+            targetPlatforms = ["dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "goodshort", "vigloo", "honey", "fundrama", "bibishort"];
         }
 
         const promises = targetPlatforms.map(async (pId) => {
@@ -412,7 +397,7 @@ export async function onRequest(context) {
         if (platform !== "all" && PLATFORM_MAP[platform]) {
             targetPlatforms = [platform];
         } else {
-            targetPlatforms = ["lookseries", "donghuaqueen", "dramaqueen", "fundrama", "goodshort", "dramawave"];
+            targetPlatforms = ["dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "goodshort", "honey", "fundrama"];
         }
 
         const promises = targetPlatforms.map(async (pId) => {
@@ -452,9 +437,8 @@ export async function onRequest(context) {
         const allepEp = pCfg.endpoints.allepisode;
 
         let paramKey = "book_id";
-        if (allepEp && allepEp.includes("vid")) paramKey = "vid";
-        else if (allepEp && allepEp.includes("vod_id")) paramKey = "vod_id";
-        else if (allepEp && allepEp.includes("drama_id")) paramKey = "drama_id";
+        if (platform === "lookseries") paramKey = "vod_id";
+        else if (platform === "vigloo") paramKey = "video_id";
 
         const [detailData, epData] = await Promise.all([
             detailEp ? fetchUpstream(detailEp, { [paramKey]: id }) : null,
@@ -462,27 +446,18 @@ export async function onRequest(context) {
         ]);
 
         let rawEpisodes = extractList(epData) || extractList(detailData);
-        if ((!rawEpisodes || rawEpisodes.length === 0) && epData && typeof epData === "object") {
-            for (const k of ["chapterList", "episodes", "episode_list", "data"]) {
-                if (Array.isArray(epData[k])) {
-                    rawEpisodes = epData[k];
-                    break;
-                }
-            }
-        }
-
         const episodes = [];
         if (Array.isArray(rawEpisodes) && rawEpisodes.length > 0) {
             rawEpisodes.forEach((ep, idx) => {
-                const epNum = ep.chapterIndex || ep.episode || ep.episode_num || ep.index || (idx + 1);
-                const epId = String(ep.chapterId || ep.episode_id || ep.eid || ep.id || epNum);
+                const epNum = ep.chapterIndex || ep.number_episode || ep.episode || ep.episode_num || ep.index || (idx + 1);
+                const epId = String(ep.chapterId || ep.chapter_id || ep.episode_id || ep.id || ep.eid || ep.nid || epNum);
                 const epTitle = ep.chapterName || ep.title || ep.name || `Episode ${epNum}`;
+                const directUrl = ep.link_720 || ep.link720_pro || ep.link720_a || ep.video_url || null;
                 episodes.push({
                     episode_num: epNum,
                     episode_id: epId,
                     title: epTitle,
-                    cover: ep.cover || ep.thumb || "",
-                    is_locked: Boolean(ep.isLock || ep.is_lock || ep.locked)
+                    direct_url: directUrl
                 });
             });
         }
@@ -493,8 +468,7 @@ export async function onRequest(context) {
                     episode_num: i,
                     episode_id: String(i),
                     title: `Episode ${i}`,
-                    cover: "",
-                    is_locked: false
+                    direct_url: null
                 });
             }
         }
@@ -531,18 +505,16 @@ export async function onRequest(context) {
             sParams = { book_id: id, episode_num: episode };
         } else if (platform === "dramawave") {
             sParams = { book_id: id, chapter_id: episodeId || String(episode) };
-        } else if (["dramaqueen", "donghuaqueen", "lookseries", "fundrama"].includes(platform)) {
-            sParams = { [platform === "lookseries" ? "vod_id" : "book_id"]: id, episode };
-        } else if (platform === "hotdrama") {
-            sParams = { vid: id, eid: episodeId || String(episode) };
-        } else if (["bibishort", "reelai"].includes(platform)) {
-            sParams = { book_id: id, episode_id: episodeId || String(episode) };
+        } else if (platform === "lookseries") {
+            sParams = { vod_id: id, episode };
+        } else if (platform === "vigloo") {
+            sParams = { season_id: id, episode_num: episode };
         } else if (platform === "honey") {
             sParams = { book_id: id, chapter_id: episodeId || String(episode) };
-        } else if (["shortmax", "dramarush"].includes(platform)) {
-            sParams = { drama_id: id, episode_index: episode };
         } else if (platform === "goodshort") {
             sParams = { book_id: id, episode_index: episode, episode_id: episodeId || String(episode) };
+        } else if (["dramaqueen", "donghuaqueen", "fundrama"].includes(platform)) {
+            sParams = { book_id: id, episode };
         } else {
             sParams = { book_id: id, episode };
         }
@@ -561,8 +533,12 @@ export async function onRequest(context) {
             videoUrl = (
                 d.playUrl || d.url || d.videoUrl ||
                 d.stream_url || d.video_url || d.m3u8 ||
+                d.video_url_raw || d.link_720 || d.link720_pro ||
                 d.encryptUrl || d.play_url || d.proxyUrl
             );
+            if (!videoUrl && Array.isArray(d.sources) && d.sources.length > 0) {
+                videoUrl = d.sources[0].url;
+            }
             if (!videoUrl && Array.isArray(d.qualities) && d.qualities.length > 0) {
                 videoUrl = d.qualities[0].url;
             }
@@ -577,7 +553,7 @@ export async function onRequest(context) {
             return jsonResponse({
                 success: false,
                 raw: streamData,
-                message: "Stream URL not available or locked"
+                message: "Stream URL not available"
             });
         }
 
@@ -592,8 +568,7 @@ export async function onRequest(context) {
             subtitles,
             platform,
             id,
-            episode,
-            proxy_url: `/api/proxy_stream?url=${encodeURIComponent(videoUrl)}`
+            episode
         });
     }
 
