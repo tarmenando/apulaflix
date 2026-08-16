@@ -28,6 +28,33 @@ const PLATFORMS_CONFIG = [
         }
     },
     {
+        id: "donghuaqueen",
+        name: "DonghuaQueen",
+        badge: "Donghua / Anime",
+        icon: "🐉",
+        endpoints: {
+            foryou: "/api/donghuaqueen/donghua",
+            search: "/api/donghuaqueen/search",
+            detail: "/api/donghuaqueen/detail",
+            allepisode: "/api/donghuaqueen/allepisode",
+            stream: "/api/donghuaqueen/stream"
+        }
+    },
+    {
+        id: "dramaqueen",
+        name: "DramaQueen",
+        badge: "Drakor / Series",
+        icon: "👑",
+        endpoints: {
+            foryou: "/api/dramaqueen/drama",
+            movie: "/api/dramaqueen/movie",
+            search: "/api/dramaqueen/search",
+            detail: "/api/dramaqueen/detail",
+            allepisode: "/api/dramaqueen/allepisode",
+            stream: "/api/dramaqueen/stream"
+        }
+    },
+    {
         id: "dramawave",
         name: "DramaWave",
         badge: "Popular",
@@ -61,19 +88,6 @@ const PLATFORMS_CONFIG = [
         }
     },
     {
-        id: "donghuaqueen",
-        name: "DonghuaQueen",
-        badge: "Donghua / Anime",
-        icon: "🐉",
-        endpoints: {
-            foryou: "/api/donghuaqueen/donghua",
-            search: "/api/donghuaqueen/search",
-            detail: "/api/donghuaqueen/detail",
-            allepisode: "/api/donghuaqueen/allepisode",
-            stream: "/api/donghuaqueen/stream"
-        }
-    },
-    {
         id: "fundrama",
         name: "FunDrama",
         badge: "Comedy & Action",
@@ -97,20 +111,6 @@ const PLATFORMS_CONFIG = [
             detail: "/api/goodshort/detail",
             allepisode: "/api/goodshort/allepisode",
             stream: "/api/goodshort/stream"
-        }
-    },
-    {
-        id: "dramaqueen",
-        name: "DramaQueen",
-        badge: "Drakor / Series",
-        icon: "👑",
-        endpoints: {
-            foryou: "/api/dramaqueen/drama",
-            movie: "/api/dramaqueen/movie",
-            search: "/api/dramaqueen/search",
-            detail: "/api/dramaqueen/detail",
-            allepisode: "/api/dramaqueen/allepisode",
-            stream: "/api/dramaqueen/stream"
         }
     },
     {
@@ -226,7 +226,7 @@ async function fetchUpstream(endpoint, params = {}) {
     
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 6000);
+        const timeout = setTimeout(() => controller.abort(), 6500);
         
         const resp = await fetch(url, {
             headers: DEFAULT_HEADERS,
@@ -237,9 +237,7 @@ async function fetchUpstream(endpoint, params = {}) {
         if (resp.ok) {
             return await resp.json();
         }
-    } catch (e) {
-        // timeout / error
-    }
+    } catch (e) {}
     return null;
 }
 
@@ -262,9 +260,8 @@ function normalizeCard(item, platformId) {
     const pInfo = PLATFORM_MAP[platformId] || { name: platformId.toUpperCase(), badge: "HD" };
     
     const dramaId = String(
-        item.bookId || item.book_id || item.vid ||
-        item.vod_id || item.id || item.drama_id ||
-        item.subject_id || item.movieId || ""
+        item.bookId || item.book_id || item.id || item.vid ||
+        item.vod_id || item.drama_id || item.subject_id || item.movieId || ""
     );
     
     const title = (
@@ -274,8 +271,8 @@ function normalizeCard(item, platformId) {
     );
     
     const cover = (
-        item.cover || item.cover_url || item.thumb ||
-        item.poster || item.img || item.vod_pic ||
+        item.cover || item.cover_url || item.image || item.thumb ||
+        item.poster || item.img || item.img_landscape_url || item.vod_pic ||
         item.horizontal_cover || item.vertical_cover || ""
     );
     
@@ -285,14 +282,19 @@ function normalizeCard(item, platformId) {
     );
     
     const episodes = (
-        item.chapterCount || item.total_episode ||
-        item.episodes_count || item.total_chapter ||
-        item.episode_num || item.total || null
+        item.chapterCount || item.total_episode || item.jumlah_episode || item.episode_final ||
+        item.episodes_count || item.total_chapter || item.episode_num || item.total || null
     );
     
-    let tags = item.tagList || item.genres || item.tags || item.categories || [];
+    let tags = item.tagList || item.genres || item.genre || item.tags || item.categories || [];
     if (typeof tags === "string") {
-        tags = tags.split(",").map(t => t.trim()).filter(Boolean);
+        try {
+            const parsed = JSON.parse(tags);
+            if (Array.isArray(parsed)) tags = parsed;
+            else tags = tags.split(",").map(t => t.trim()).filter(Boolean);
+        } catch (e) {
+            tags = tags.split(",").map(t => t.trim()).filter(Boolean);
+        }
     } else if (Array.isArray(tags)) {
         tags = tags.map(t => typeof t === "object" ? (t.name || String(t)) : String(t));
     }
@@ -360,7 +362,7 @@ export async function onRequest(context) {
         if (platform !== "all" && PLATFORM_MAP[platform]) {
             targetPlatforms = [platform];
         } else {
-            targetPlatforms = ["lookseries", "donghuaqueen", "fundrama", "goodshort", "dramaqueen", "dramawave", "dramabox"];
+            targetPlatforms = ["lookseries", "donghuaqueen", "dramaqueen", "fundrama", "goodshort", "dramawave", "dramabox"];
         }
 
         const promises = targetPlatforms.map(async (pId) => {
@@ -410,7 +412,7 @@ export async function onRequest(context) {
         if (platform !== "all" && PLATFORM_MAP[platform]) {
             targetPlatforms = [platform];
         } else {
-            targetPlatforms = ["lookseries", "donghuaqueen", "fundrama", "goodshort", "dramaqueen", "dramawave"];
+            targetPlatforms = ["lookseries", "donghuaqueen", "dramaqueen", "fundrama", "goodshort", "dramawave"];
         }
 
         const promises = targetPlatforms.map(async (pId) => {
@@ -485,7 +487,6 @@ export async function onRequest(context) {
             });
         }
 
-        // Default 30 episodes fallback if not returned
         if (episodes.length === 0) {
             for (let i = 1; i <= 30; i++) {
                 episodes.push({

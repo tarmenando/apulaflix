@@ -415,6 +415,8 @@ async function performSearch(keyword) {
     }
 }
 
+const DEFAULT_POSTER = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%23222222"/><stop offset="100%" stop-color="%23111111"/></linearGradient></defs><rect width="300" height="450" fill="url(%23g)"/><rect x="6" y="6" width="288" height="438" rx="6" fill="none" stroke="%23333333" stroke-width="2"/><circle cx="150" cy="180" r="36" fill="%23E50914" opacity="0.85"/><polygon points="144,166 164,180 144,194" fill="%23ffffff"/><text x="150" y="250" fill="%23ffffff" font-family="-apple-system,sans-serif" font-size="15" font-weight="bold" text-anchor="middle">APULA-FLIX</text><text x="150" y="275" fill="%23888888" font-family="-apple-system,sans-serif" font-size="12" text-anchor="middle">Streaming</text></svg>`;
+
 function setHero(drama) {
     STATE.featuredDrama = drama;
     if (!drama) return;
@@ -426,22 +428,24 @@ function setHero(drama) {
     elements.heroTags.textContent = drama.tags && drama.tags.length ? drama.tags.join(' • ') : 'Drama • Romance • Hot';
     elements.heroSynopsis.textContent = drama.description || 'Tonton kisah seru penuh emosi dan intrik tak terduga sekarang juga secara gratis tanpa buffering.';
 
-    if (drama.cover) {
+    if (drama.cover && drama.cover.startsWith('http')) {
         elements.heroBackdrop.style.backgroundImage = `url('${drama.cover}')`;
+    } else {
+        elements.heroBackdrop.style.backgroundImage = `url('${DEFAULT_POSTER}')`;
     }
 }
 
 function renderGrid(dramas) {
     let html = '';
     dramas.forEach((item, idx) => {
-        const coverImg = item.cover || 'https://via.placeholder.com/300x450/111/fff?text=No+Cover';
+        const coverImg = (item.cover && item.cover.startsWith('http')) ? item.cover : DEFAULT_POSTER;
         const epBadge = item.episodes ? `${item.episodes} Ep` : 'HD';
         const tagText = item.tags && item.tags.length ? item.tags.join(', ') : item.platform_name;
 
         html += `
             <div class="drama-card" data-index="${idx}">
                 <div class="card-poster-wrapper">
-                    <img class="card-poster" src="${coverImg}" alt="${item.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x450/222/777?text=Drama'">
+                    <img class="card-poster" src="${coverImg}" alt="${item.title}" loading="lazy" onerror="if(this.dataset.fb!=='1'){this.dataset.fb='1';this.src='${DEFAULT_POSTER}';}">
                     <span class="card-platform-tag">${item.platform_name || 'Drama'}</span>
                     <span class="card-ep-badge">${epBadge}</span>
                     <div class="card-play-overlay">
