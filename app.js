@@ -68,7 +68,6 @@ const PLATFORMS_CONFIG = [
             trending: "/api/shortmax/ranking",
             search: "/api/shortmax/search",
             detail: "/api/shortmax/detail",
-            allepisode: "/api/shortmax/allepisode",
             stream: "/api/shortmax/stream"
         }
     },
@@ -762,6 +761,11 @@ async function apiFetch(endpoint, params = {}) {
         clearTimeout(timeout);
 
         if (resp.ok) {
+            const cType = resp.headers.get('content-type') || '';
+            if (cType.includes('mpegurl') || cType.includes('application/x-mpegURL') || cType.includes('text/plain')) {
+                const textBody = await resp.text();
+                return { playUrl: edgeUrl, rawText: textBody };
+            }
             let resData = await resp.json();
             if (resData && typeof resData === 'object' && typeof resData.data === 'string' && resData.data.startsWith('U2FsdGVk')) {
                 resData.data = decryptNunoData(resData.data);
@@ -1000,12 +1004,35 @@ async function openPlayer(drama, episodeNum = 1) {
             let epData = null;
             if (drama.platform_id === "donghuaqueen" || drama.platform_id === "dramaqueen") {
                 epData = await apiFetch(pCfg.endpoints.detail, { book_id: drama.id });
+            } else if (drama.platform_id === "shortmax" && pCfg.endpoints.detail) {
+                epData = await apiFetch(pCfg.endpoints.detail, { drama_id: drama.id });
             } else if (allepEp) {
                 epData = await apiFetch(allepEp, { [paramKey]: drama.id });
             }
+
+            // Extract total count if detail returned object with totalEpisodes
+            if (epData && typeof epData === 'object') {
+                let dObj = epData.data || epData;
+                if (typeof dObj === 'string' && dObj.startsWith('U2FsdGVk')) {
+                    dObj = decryptNunoData(dObj);
+                }
+                const totalCount = dObj.totalEpisodes || dObj.updateEpisode || dObj.episodeCount || dObj.total_episodes || dObj.num_videos;
+                if (totalCount && parseInt(totalCount) > 0) {
+                    const count = Math.min(parseInt(totalCount), 200);
+                    for (let i = 1; i <= count; i++) {
+                        episodes.push({
+                            episode_num: i,
+                            episode_id: String(i),
+                            title: `Episode ${i}`,
+                            direct_url: null
+                        });
+                    }
+                }
+            }
+
             const rawEpisodes = extractList(epData);
-            
             if (Array.isArray(rawEpisodes) && rawEpisodes.length > 0) {
+                episodes = []; // Override with explicit episode list
                 rawEpisodes.forEach((ep, idx) => {
                     const epNum = ep.chapterIndex || ep.number_episode || ep.episode || ep.episode_num || ep.index || ep.ep || (idx + 1);
                     const epId = String(ep.episodeId || ep.episode_id || ep.chapterId || ep.chapter_id || ep.id || ep.eid || ep.nid || epNum);
@@ -1024,7 +1051,7 @@ async function openPlayer(drama, episodeNum = 1) {
                 });
             }
         } catch (e) {
-            console.error('Error loading allepisode:', e);
+            console.error('Error loading episodes:', e);
         }
     }
 
@@ -1129,8 +1156,34 @@ async function playEpisode(episodeNum, forceProxy = false) {
         return;
     }
 
-    let sParams = {};
     const platform = drama.platform_id;
+    if (platform === "shortmax") {
+        const streamUrl = `/api/shortmax/stream?drama_id=${encodeURIComponent(drama.id)}&episode_index=${episodeNum}`;
+        elements.videoLoadingText.textContent = 'Memulai pemutaran HLS...';
+        if (Hls.isSupported()) {
+            const hls = new Hls({ maxBufferLength: 30, enableWorker: true });
+            hls.loadSource(streamUrl);
+            hls.attachMedia(elements.mainVideo);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                elements.videoLoading.classList.remove('show');
+                elements.mainVideo.play().catch(() => {});
+            });
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    elements.videoLoading.classList.remove('show');
+                    showToast('Stream video belum tersedia di server hulu untuk episode ini.', 'error');
+                }
+            });
+            STATE.hlsInstance = hls;
+        } else if (elements.mainVideo.canPlayType('application/vnd.apple.mpegurl')) {
+            elements.mainVideo.src = streamUrl;
+            elements.mainVideo.play().catch(() => {});
+            elements.videoLoading.classList.remove('show');
+        }
+        return;
+    }
+
+    let sParams = {};
     if (platform === "bibishort") {
         sParams = { book_id: drama.id, episode_id: epId || String(episodeNum) };
     } else if (platform === "dramabox") {
@@ -1139,8 +1192,6 @@ async function playEpisode(episodeNum, forceProxy = false) {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
     } else if (platform === "lookseries") {
         sParams = { vod_id: drama.id, episode: episodeNum };
-    } else if (platform === "shortmax") {
-        sParams = { drama_id: drama.id, episode_index: episodeNum };
     } else if (platform === "honey") {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
     } else if (platform === "goodshort") {
