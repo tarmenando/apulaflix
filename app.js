@@ -1305,6 +1305,7 @@ async function playEpisode(episodeNum, forceProxy = false) {
         return;
     }
 
+    const platform = drama ? drama.platform_id : '';
     let sParams = {};
     if (platform === "bibishort") {
         sParams = { book_id: drama.id, episode_id: epId || String(episodeNum) };
