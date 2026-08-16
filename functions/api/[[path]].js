@@ -139,12 +139,14 @@ export async function onRequest(context) {
     }
 
     // 3. Generic /api/* Proxy with Intelligent Routing
-    // Platforms exclusive to backup server (skip primary to avoid timeout)
+    // Platforms that respond instantly and stably from backup server
     const isExclusiveToBackup = (
+        pathString.startsWith("sodareels") ||
         pathString.startsWith("donghuaqueen") ||
         pathString.startsWith("dramaqueen") ||
         pathString.startsWith("lookseries") ||
-        pathString.startsWith("honey")
+        pathString.startsWith("honey") ||
+        pathString.startsWith("fundrama")
     );
 
     if (!isExclusiveToBackup) {
@@ -159,7 +161,7 @@ export async function onRequest(context) {
 
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 4500);
+            const timeout = setTimeout(() => controller.abort(), 4000);
             
             const response = await fetch(primaryTargetUrl, {
                 method: request.method,
@@ -170,6 +172,7 @@ export async function onRequest(context) {
             clearTimeout(timeout);
 
             if (response.ok) {
+                // If primary returns an empty error json, let it fall back
                 const responseHeaders = new Headers(response.headers);
                 responseHeaders.set("Access-Control-Allow-Origin", "*");
                 responseHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");

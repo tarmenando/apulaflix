@@ -693,8 +693,14 @@ function normalizeCard(item, platformId) {
         item.poster || item.img || item.img_landscape_url || item.vod_pic ||
         item.horizontal_cover || item.vertical_cover || ""
     );
-    if (cover && cover.startsWith('http://')) {
-        cover = cover.replace('http://', 'https://');
+    if (cover) {
+        if (cover.startsWith('http://')) {
+            cover = cover.replace('http://', 'https://');
+        } else if (!cover.startsWith('http')) {
+            if (cover.startsWith('series-descriptions') || cover.startsWith('/series-descriptions')) {
+                cover = `https://img.shorten.watch/${cover.replace(/^\//, '')}`;
+            }
+        }
     }
     
     const desc = (
@@ -934,7 +940,7 @@ function renderGrid(dramas) {
         html += `
             <div class="drama-card" data-index="${idx}">
                 <div class="card-poster-wrapper">
-                    <img class="card-poster" src="${coverImg}" alt="${item.title}" loading="lazy">
+                    <img class="card-poster" src="${coverImg}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${DEFAULT_POSTER}'">
                     <span class="card-platform-tag">${item.platform_name || 'Drama'}</span>
                     <span class="card-ep-badge">${epBadge}</span>
                     <div class="card-play-overlay">
