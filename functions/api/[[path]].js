@@ -65,6 +65,17 @@ export async function onRequest(context) {
             return jsonResponse({ error: "Missing url parameter" }, 400);
         }
 
+        // Whatbox.ca streams require upstream Basic Auth credentials held by redmi.nunodrama.my.id
+        if (streamUrl.includes("whatbox.ca")) {
+            let authProxyUrl = "";
+            if (streamUrl.includes("rambutan")) {
+                authProxyUrl = `${BACKUP_BASE}/api/dramaqueen/proxy_video?url=${encodeURIComponent(streamUrl)}`;
+            } else {
+                authProxyUrl = `${BACKUP_BASE}/api/donghuaqueen/proxy_video?url=${encodeURIComponent(streamUrl)}`;
+            }
+            return Response.redirect(authProxyUrl, 302);
+        }
+
         const forwardHeaders = new Headers();
         forwardHeaders.set("User-Agent", DEFAULT_HEADERS["User-Agent"]);
         if (request.headers.has("Range")) {
