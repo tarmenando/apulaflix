@@ -19,6 +19,11 @@ const PLATFORMS_CONFIG = [
         endpoints: {
             foryou: "/api/sodareels/foryou",
             trending: "/api/sodareels/foryou",
+            terbaru: "/api/sodareels/foryou",
+            dubbing: "/api/sodareels/foryou",
+            vip: "/api/sodareels/foryou",
+            movie: "/api/sodareels/foryou",
+            donghua: "/api/sodareels/foryou",
             search: "/api/sodareels/search",
             detail: "/api/sodareels/detail",
             allepisode: "/api/sodareels/allepisode",
@@ -197,6 +202,11 @@ const PLATFORMS_CONFIG = [
         endpoints: {
             foryou: "/api/dotdrama/foryou",
             trending: "/api/dotdrama/foryou",
+            terbaru: "/api/dotdrama/foryou",
+            dubbing: "/api/dotdrama/foryou",
+            vip: "/api/dotdrama/foryou",
+            movie: "/api/dotdrama/foryou",
+            donghua: "/api/dotdrama/foryou",
             search: "/api/dotdrama/search",
             detail: "/api/dotdrama/detail",
             allepisode: "/api/dotdrama/allepisode",
@@ -349,8 +359,8 @@ function sanitizeMediaUrl(url, platform = 'donghuaqueen') {
         }
     }
 
-    // Route any third-party HLS m3u8 playlists (MyDrama, DramaWave, etc.) or insecure HTTP streams through Edge Proxy
-    if (url.includes('.m3u8') || url.startsWith('http://') || url.includes('my-drama.tv') || url.includes('mydramawave.com')) {
+    // Route any third-party HLS m3u8 playlists (MyDrama, DramaWave, ShortEn, SnapShorts, etc.) or insecure HTTP streams through Edge Proxy
+    if (url.includes('.m3u8') || url.startsWith('http://') || url.includes('my-drama.tv') || url.includes('mydramawave.com') || url.includes('shorten.watch') || url.includes('snap-shorts.com')) {
         return `/api/proxy_stream?url=${encodeURIComponent(url)}`;
     }
 
@@ -1321,6 +1331,10 @@ async function playEpisode(episodeNum, forceProxy = false) {
         sParams = { book_id: drama.id, episode_index: episodeNum, episode_id: epId || String(episodeNum) };
     } else if (platform === "shortmax") {
         sParams = { drama_id: drama.id, episode_index: episodeNum, episode_id: epId || String(episodeNum) };
+    } else if (platform === "shorten") {
+        sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
+    } else if (platform === "minishort") {
+        sParams = { book_id: drama.id, episode: episodeNum };
     } else {
         sParams = { book_id: drama.id, episode: episodeNum };
     }
