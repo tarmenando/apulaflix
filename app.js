@@ -318,7 +318,7 @@ const elements = {
     toast: document.getElementById('toast')
 };
 
-// Complete URL Sanitizer - Routes Whatbox & HTTP media through authenticated HTTPS proxies (Idempotent)
+// Complete URL Sanitizer - Routes Whatbox & HLS/HTTP media through authenticated HTTPS proxies (Idempotent)
 function sanitizeMediaUrl(url, platform = 'donghuaqueen') {
     if (!url || typeof url !== 'string') return '';
     
@@ -330,17 +330,23 @@ function sanitizeMediaUrl(url, platform = 'donghuaqueen') {
         return url;
     }
 
-    if (url.startsWith('http://') || url.includes('whatbox.ca')) {
+    if (url.includes('whatbox.ca')) {
         if (platform === 'lookseries' || url.includes('lookseries')) {
             return `https://redmi.nunodrama.my.id/api/lookseries/proxy?url=${encodeURIComponent(url)}`;
         } else if (platform === 'dramaqueen' || url.includes('rambutan.whatbox.ca')) {
             return `https://redmi.nunodrama.my.id/api/dramaqueen/proxy_video?url=${encodeURIComponent(url)}`;
-        } else if (platform === 'donghuaqueen' || url.includes('oberon.whatbox.ca') || url.includes('whatbox.ca')) {
+        } else if (platform === 'donghuaqueen' || url.includes('oberon.whatbox.ca')) {
             return `https://redmi.nunodrama.my.id/api/donghuaqueen/proxy_video?url=${encodeURIComponent(url)}`;
         } else {
-            return `/api/proxy_stream?url=${encodeURIComponent(url)}`;
+            return `https://redmi.nunodrama.my.id/api/donghuaqueen/proxy_video?url=${encodeURIComponent(url)}`;
         }
     }
+
+    // Route any third-party HLS m3u8 playlists (MyDrama, DramaWave, etc.) or insecure HTTP streams through Edge Proxy
+    if (url.includes('.m3u8') || url.startsWith('http://') || url.includes('my-drama.tv') || url.includes('mydramawave.com')) {
+        return `/api/proxy_stream?url=${encodeURIComponent(url)}`;
+    }
+
     return url;
 }
 
