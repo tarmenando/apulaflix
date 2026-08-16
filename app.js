@@ -318,17 +318,11 @@ const elements = {
     toast: document.getElementById('toast')
 };
 
-// URL Sanitizer to prevent Mixed Content (HTTP on HTTPS)
+// Complete URL Sanitizer - Forces HTTPS or Edge proxy on any HTTP media
 function sanitizeMediaUrl(url, platform = 'donghuaqueen') {
     if (!url || typeof url !== 'string') return '';
     if (url.startsWith('http://')) {
-        if (platform === 'lookseries') {
-            return `https://redmi.nunodrama.my.id/api/lookseries/proxy?url=${encodeURIComponent(url)}`;
-        } else if (platform === 'dramaqueen') {
-            return `https://redmi.nunodrama.my.id/api/dramaqueen/proxy_video?url=${encodeURIComponent(url)}`;
-        } else {
-            return `https://redmi.nunodrama.my.id/api/donghuaqueen/proxy_video?url=${encodeURIComponent(url)}`;
-        }
+        return `/api/proxy_stream?url=${encodeURIComponent(url)}`;
     }
     return url;
 }
@@ -471,6 +465,7 @@ function initEvents() {
         }
     });
 
+    elements.closePlayerBtn.addEventListener('closePlayerBtn', closePlayer);
     elements.closePlayerBtn.addEventListener('click', closePlayer);
     elements.closePlayerBackdrop.addEventListener('click', closePlayer);
 
@@ -704,9 +699,9 @@ function normalizeCard(item, platformId) {
     };
 }
 
-// Resilient API Fetch (100% CORS Clean):
+// Resilient API Fetch (100% CORS & Mixed-Content Clean):
 // 1. Calls same-origin Edge Gateway (/api/...) -> proxies to nunodrama.my.id with Bearer token & failover
-// 2. Direct fallback to redmi.nunodrama.my.id (Open CORS)
+// 2. Direct fallback to redmi.nunodrama.my.id (Open CORS & HTTPS)
 async function apiFetch(endpoint, params = {}) {
     const q = new URLSearchParams(params).toString();
     const queryStr = q ? '?' + q : '';
@@ -1051,12 +1046,13 @@ async function playEpisode(episodeNum, forceProxy = false) {
     
     // If we already have a direct stream link from allepisode (e.g. BibiShort, DonghuaQueen, DramaQueen)
     if (epObj && epObj.direct_url && !forceProxy) {
-        const isHls = epObj.direct_url.includes(".m3u8");
+        const directPlayUrl = sanitizeMediaUrl(epObj.direct_url, drama.platform_id);
+        const isHls = directPlayUrl.includes(".m3u8");
         if (isHls) {
             elements.videoLoadingText.textContent = 'Memulai pemutaran HLS...';
             if (Hls.isSupported()) {
                 const hls = new Hls({ maxBufferLength: 30, enableWorker: true });
-                hls.loadSource(epObj.direct_url);
+                hls.loadSource(directPlayUrl);
                 hls.attachMedia(elements.mainVideo);
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
                     elements.videoLoading.classList.remove('show');
@@ -1069,12 +1065,12 @@ async function playEpisode(episodeNum, forceProxy = false) {
                 });
                 STATE.hlsInstance = hls;
             } else if (elements.mainVideo.canPlayType('application/vnd.apple.mpegurl')) {
-                elements.mainVideo.src = epObj.direct_url;
+                elements.mainVideo.src = directPlayUrl;
                 elements.mainVideo.play().catch(() => {});
                 elements.videoLoading.classList.remove('show');
             }
         } else {
-            loadDirectVideo(epObj.direct_url);
+            loadDirectVideo(directPlayUrl);
         }
         return;
     }
@@ -1136,7 +1132,7 @@ async function playEpisode(episodeNum, forceProxy = false) {
             }
 
             if (videoUrl) {
-                // Ensure HTTPS
+                // Ensure 100% HTTPS / Secure proxy
                 videoUrl = sanitizeMediaUrl(videoUrl, platform);
 
                 const isM3u8 = videoUrl.includes(".m3u8") || videoUrl.includes("/proxy_stream");
@@ -1144,8 +1140,7 @@ async function playEpisode(episodeNum, forceProxy = false) {
 
                 if (isM3u8 && !isDirectMp4) {
                     streamType = "hls";
-                    // For DramaWave or CORS-restricted HLS, route through CORS proxy
-                    if (videoUrl.includes("mydramawave.com") || platform === "dramawave") {
+                    if (videoUrl.includes("mydramawave.com") || platform === "dramawave" || videoUrl.startsWith('http://')) {
                         videoUrl = `/api/proxy_stream?url=${encodeURIComponent(videoUrl)}`;
                     }
                 } else {

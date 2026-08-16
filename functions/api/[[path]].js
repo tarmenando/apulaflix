@@ -58,7 +58,7 @@ export async function onRequest(context) {
         return jsonResponse({ status: "ok", primary: PRIMARY_BASE, backup: BACKUP_BASE, time: Date.now() });
     }
 
-    // 2. Route: /api/proxy_stream - Universal CORS proxy & HLS rewriter
+    // 2. Route: /api/proxy_stream - Universal CORS proxy & HLS / HTTPS Rewriter
     if (pathString === "proxy_stream") {
         const streamUrl = url.searchParams.get("url");
         if (!streamUrl) {
@@ -75,7 +75,7 @@ export async function onRequest(context) {
             const mediaResp = await fetch(streamUrl, { headers: forwardHeaders });
             const contentType = mediaResp.headers.get("Content-Type") || "";
 
-            // If it is an HLS .m3u8 playlist, rewrite relative URLs to absolute proxy URLs
+            // If it is an HLS .m3u8 playlist, rewrite all relative AND http lines to secure proxy URLs
             if (streamUrl.includes(".m3u8") || contentType.includes("mpegurl") || contentType.includes("application/x-mpegURL")) {
                 const m3u8Text = await mediaResp.text();
                 const baseUrl = streamUrl.substring(0, streamUrl.lastIndexOf('/') + 1);
@@ -86,18 +86,18 @@ export async function onRequest(context) {
                     if (!trimmed) return line;
                     if (trimmed.startsWith('#')) {
                         return trimmed.replace(/URI="([^"]+)"/g, (match, relUri) => {
+                            let abs = relUri;
                             if (!relUri.startsWith('http')) {
-                                const abs = new URL(relUri, baseUrl).href;
-                                return `URI="/api/proxy_stream?url=${encodeURIComponent(abs)}"`;
+                                abs = new URL(relUri, baseUrl).href;
                             }
-                            return match;
+                            return `URI="/api/proxy_stream?url=${encodeURIComponent(abs)}"`;
                         });
                     }
+                    let abs = trimmed;
                     if (!trimmed.startsWith('http')) {
-                        const abs = new URL(trimmed, baseUrl).href;
-                        return `/api/proxy_stream?url=${encodeURIComponent(abs)}`;
+                        abs = new URL(trimmed, baseUrl).href;
                     }
-                    return line;
+                    return `/api/proxy_stream?url=${encodeURIComponent(abs)}`;
                 });
 
                 return new Response(rewrittenLines.join('\n'), {
