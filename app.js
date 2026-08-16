@@ -1,8 +1,13 @@
 /**
  * APULA-FLIX - HIGH PERFORMANCE CLIENT-SIDE STREAMING CONTROLLER
+ * Primary Source: https://nunodrama.my.id (Encrypted Caddy Gateway)
+ * Backup Source:  https://redmi.nunodrama.my.id (Direct Fallback)
  */
 
-const API_BASE = "https://redmi.nunodrama.my.id";
+const PRIMARY_API = "https://nunodrama.my.id";
+const BACKUP_API  = "https://redmi.nunodrama.my.id";
+const API_TOKEN   = "a3VjaW5nIGthbXB1bmc="; // Base64 token for nunodrama.my.id
+const DECRYPT_KEY = "Nuno-secret";          // AES-256 Passphrase for payload decryption
 
 // Safe SVG Data URI with zero double quotes to prevent breaking HTML attributes
 const DEFAULT_POSTER = "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22450%22%20viewBox%3D%220%200%20300%20450%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23222222%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23111111%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22300%22%20height%3D%22450%22%20fill%3D%22url(%23g)%22%2F%3E%3Ccircle%20cx%3D%22150%22%20cy%3D%22180%22%20r%3D%2236%22%20fill%3D%22%23E50914%22%20opacity%3D%220.85%22%2F%3E%3Cpolygon%20points%3D%22144%2C166%20164%2C180%20144%2C194%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%22150%22%20y%3D%22250%22%20fill%3D%22%23ffffff%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20font-weight%3D%22bold%22%20text-anchor%3D%22middle%22%3EAPULA-FLIX%3C%2Ftext%3E%3Ctext%20x%3D%22150%22%20y%3D%22275%22%20fill%3D%22%23888888%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20text-anchor%3D%22middle%22%3EStreaming%3C%2Ftext%3E%3C%2Fsvg%3E";
@@ -11,7 +16,7 @@ const PLATFORMS_CONFIG = [
     {
         id: "sodareels",
         name: "SodaReels",
-        badge: "250+ Drama HD",
+        badge: "260+ Drama HD",
         icon: "🥤",
         endpoints: {
             foryou: "/api/sodareels/foryou",
@@ -53,6 +58,20 @@ const PLATFORMS_CONFIG = [
             detail: "/api/dramabox/detail",
             allepisode: "/api/dramabox/allepisode",
             stream: "/api/dramabox/stream"
+        }
+    },
+    {
+        id: "shortmax",
+        name: "ShortMax",
+        badge: "Trending",
+        icon: "🚀",
+        endpoints: {
+            foryou: "/api/shortmax/foryou",
+            trending: "/api/shortmax/ranking",
+            search: "/api/shortmax/search",
+            detail: "/api/shortmax/detail",
+            allepisode: "/api/shortmax/allepisode",
+            stream: "/api/shortmax/stream"
         }
     },
     {
@@ -156,19 +175,6 @@ const PLATFORMS_CONFIG = [
             detail: "/api/shorten/detail",
             allepisode: "/api/shorten/allepisode",
             stream: "/api/shorten/stream"
-        }
-    },
-    {
-        id: "vigloo",
-        name: "Vigloo",
-        badge: "Exclusive",
-        icon: "💎",
-        endpoints: {
-            foryou: "/api/vigloo/foryou",
-            trending: "/api/vigloo/foryou",
-            detail: "/api/vigloo/detail",
-            allepisode: "/api/vigloo/allepisode",
-            stream: "/api/vigloo/stream"
         }
     },
     {
@@ -327,6 +333,25 @@ function sanitizeMediaUrl(url, platform = 'donghuaqueen') {
         }
     }
     return url;
+}
+
+// AES Decryption Helper for NunoDrama Payloads
+function decryptNunoData(ciphertext) {
+    if (typeof ciphertext !== 'string' || !ciphertext.startsWith('U2FsdGVk')) {
+        return ciphertext;
+    }
+    try {
+        if (window.CryptoJS) {
+            const bytes = CryptoJS.AES.decrypt(ciphertext, DECRYPT_KEY);
+            const decryptedStr = bytes.toString(CryptoJS.enc.Utf8);
+            if (decryptedStr) {
+                return JSON.parse(decryptedStr);
+            }
+        }
+    } catch (e) {
+        console.warn('Decryption error:', e);
+    }
+    return ciphertext;
 }
 
 // Initialize Application
@@ -624,7 +649,7 @@ function normalizeCard(item, platformId) {
     
     const dramaId = String(
         item.bookId || item.book_id || item.id || item.vid ||
-        item.vod_id || item.drama_id || item.dramaId || item.subject_id || item.movieId || ""
+        item.vod_id || item.drama_id || item.dramaId || item.shortPlayId || item.subject_id || item.movieId || ""
     );
     
     const title = (
@@ -634,7 +659,7 @@ function normalizeCard(item, platformId) {
     );
     
     let cover = (
-        item.cover || item.cover_url || item.image || item.thumb ||
+        item.cover || item.cover_url || item.coverWap || item.image || item.thumb ||
         item.poster || item.img || item.img_landscape_url || item.vod_pic ||
         item.horizontal_cover || item.vertical_cover || ""
     );
@@ -648,7 +673,7 @@ function normalizeCard(item, platformId) {
     );
     
     const episodes = (
-        item.chapterCount || item.total_episode || item.jumlah_episode || item.episode_final ||
+        item.chapterCount || item.total_episode || item.totalEpisodes || item.jumlah_episode || item.episode_final ||
         item.num_videos || item.episodes_count || item.total_chapter || item.episode || item.episode_num || item.total || null
     );
     
@@ -681,21 +706,74 @@ function normalizeCard(item, platformId) {
     };
 }
 
+// Resilient API Fetch with Primary (nunodrama.my.id) -> Backup (redmi) Failover
 async function apiFetch(endpoint, params = {}) {
     const q = new URLSearchParams(params).toString();
-    const url = `${API_BASE}${endpoint}${q ? '?' + q : ''}`;
+    const queryStr = q ? '?' + q : '';
+
+    const authHeaders = {
+        'Authorization': `Bearer ${API_TOKEN}`,
+        'x-api-token': API_TOKEN,
+        'Accept': 'application/json'
+    };
+
+    // 1. Try Primary Server (https://nunodrama.my.id)
     try {
-        const resp = await fetch(url, { mode: 'cors' });
+        const primaryUrl = `${PRIMARY_API}${endpoint}${queryStr}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4500);
+
+        const resp = await fetch(primaryUrl, {
+            headers: authHeaders,
+            mode: 'cors',
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+
         if (resp.ok) {
-            return await resp.json();
+            let resData = await resp.json();
+            if (resData && typeof resData === 'object' && typeof resData.data === 'string' && resData.data.startsWith('U2FsdGVk')) {
+                resData.data = decryptNunoData(resData.data);
+            }
+            return resData;
         }
     } catch (e) {
-        console.warn(`Direct fetch failed for ${endpoint}, trying local fallback:`, e);
-        try {
-            const proxyResp = await fetch(endpoint + (q ? '?' + q : ''));
-            if (proxyResp.ok) return await proxyResp.json();
-        } catch (err) {}
+        // Fall through to backup
     }
+
+    // 2. Try Backup Server (https://redmi.nunodrama.my.id)
+    try {
+        const backupUrl = `${BACKUP_API}${endpoint}${queryStr}`;
+        const controller2 = new AbortController();
+        const timeout2 = setTimeout(() => controller2.abort(), 4500);
+
+        const bResp = await fetch(backupUrl, {
+            mode: 'cors',
+            signal: controller2.signal
+        });
+        clearTimeout(timeout2);
+
+        if (bResp.ok) {
+            let resData = await bResp.json();
+            if (resData && typeof resData === 'object' && typeof resData.data === 'string' && resData.data.startsWith('U2FsdGVk')) {
+                resData.data = decryptNunoData(resData.data);
+            }
+            return resData;
+        }
+    } catch (e) {}
+
+    // 3. Try Local Serverless Edge Proxy (/api/...)
+    try {
+        const localResp = await fetch(endpoint + queryStr);
+        if (localResp.ok) {
+            let resData = await localResp.json();
+            if (resData && typeof resData === 'object' && typeof resData.data === 'string' && resData.data.startsWith('U2FsdGVk')) {
+                resData.data = decryptNunoData(resData.data);
+            }
+            return resData;
+        }
+    } catch (err) {}
+
     return null;
 }
 
@@ -712,7 +790,7 @@ async function loadDramas() {
     if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
         targetPlatforms = [STATE.currentPlatform];
     } else {
-        targetPlatforms = ["sodareels", "dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "minishort", "goodshort", "shorten", "vigloo", "honey", "dotdrama", "soreel", "fundrama", "bibishort"];
+        targetPlatforms = ["sodareels", "dramawave", "dramabox", "shortmax", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "minishort", "goodshort", "shorten", "honey", "dotdrama", "soreel", "fundrama", "bibishort"];
     }
 
     try {
@@ -779,7 +857,7 @@ async function performSearch(keyword) {
     if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
         targetPlatforms = [STATE.currentPlatform];
     } else {
-        targetPlatforms = ["sodareels", "dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "goodshort", "honey", "dotdrama"];
+        targetPlatforms = ["sodareels", "dramawave", "dramabox", "shortmax", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "goodshort", "honey", "dotdrama"];
     }
 
     try {
@@ -897,6 +975,7 @@ async function openPlayer(drama, episodeNum = 1) {
         let paramKey = "book_id";
         if (drama.platform_id === "lookseries") paramKey = "vod_id";
         else if (drama.platform_id === "vigloo") paramKey = "video_id";
+        else if (drama.platform_id === "shortmax") paramKey = "drama_id";
 
         try {
             const epData = allepEp ? await apiFetch(allepEp, { [paramKey]: drama.id }) : null;
@@ -1035,8 +1114,8 @@ async function playEpisode(episodeNum, forceProxy = false) {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
     } else if (platform === "lookseries") {
         sParams = { vod_id: drama.id, episode: episodeNum };
-    } else if (platform === "vigloo") {
-        sParams = { season_id: drama.id, program_id: drama.id, episode_num: episodeNum };
+    } else if (platform === "shortmax") {
+        sParams = { drama_id: drama.id, episode_index: episodeNum };
     } else if (platform === "honey") {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
     } else if (platform === "goodshort") {
@@ -1052,8 +1131,13 @@ async function playEpisode(episodeNum, forceProxy = false) {
             let videoUrl = null;
             let streamType = "mp4";
             
-            if (typeof streamData === "object") {
-                const d = streamData.data || streamData;
+            let d = streamData.data || streamData;
+            // Handle AES-encrypted stream payload
+            if (typeof d === 'string' && d.startsWith('U2FsdGVk')) {
+                d = decryptNunoData(d);
+            }
+
+            if (typeof d === "object" && d !== null) {
                 videoUrl = (
                     d.playUrl || d.url || d.videoUrl ||
                     d.stream_url || d.video_url || d.m3u8 ||
@@ -1066,8 +1150,8 @@ async function playEpisode(episodeNum, forceProxy = false) {
                 if (!videoUrl && Array.isArray(d.qualities) && d.qualities.length > 0) {
                     videoUrl = d.qualities[0].url;
                 }
-            } else if (typeof streamData === "string" && streamData.startsWith("http")) {
-                videoUrl = streamData;
+            } else if (typeof d === "string" && d.startsWith("http")) {
+                videoUrl = d;
             }
 
             if (videoUrl) {

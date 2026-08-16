@@ -1,20 +1,27 @@
 /**
  * Cloudflare Pages Functions - Universal Serverless Router & Gateway for APULA-FLIX
+ * Primary upstream: https://nunodrama.my.id
+ * Backup upstream:  https://redmi.nunodrama.my.id
  */
 
-const UPSTREAM_BASE = "https://redmi.nunodrama.my.id";
+const PRIMARY_BASE = "https://nunodrama.my.id";
+const BACKUP_BASE  = "https://redmi.nunodrama.my.id";
+const API_TOKEN    = "a3VjaW5nIGthbXB1bmc=";
+
 const DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
-    "Referer": "https://redmi.nunodrama.my.id/"
+    "Authorization": `Bearer ${API_TOKEN}`,
+    "x-api-token": API_TOKEN,
+    "Referer": "https://nunodrama.my.id/"
 };
 
 const PLATFORMS_CONFIG = [
     {
         id: "sodareels",
         name: "SodaReels",
-        badge: "250+ Drama HD",
+        badge: "260+ Drama HD",
         icon: "🥤",
         endpoints: {
             foryou: "/api/sodareels/foryou",
@@ -56,6 +63,20 @@ const PLATFORMS_CONFIG = [
             detail: "/api/dramabox/detail",
             allepisode: "/api/dramabox/allepisode",
             stream: "/api/dramabox/stream"
+        }
+    },
+    {
+        id: "shortmax",
+        name: "ShortMax",
+        badge: "Trending",
+        icon: "🚀",
+        endpoints: {
+            foryou: "/api/shortmax/foryou",
+            trending: "/api/shortmax/ranking",
+            search: "/api/shortmax/search",
+            detail: "/api/shortmax/detail",
+            allepisode: "/api/shortmax/allepisode",
+            stream: "/api/shortmax/stream"
         }
     },
     {
@@ -162,19 +183,6 @@ const PLATFORMS_CONFIG = [
         }
     },
     {
-        id: "vigloo",
-        name: "Vigloo",
-        badge: "Exclusive",
-        icon: "💎",
-        endpoints: {
-            foryou: "/api/vigloo/foryou",
-            trending: "/api/vigloo/foryou",
-            detail: "/api/vigloo/detail",
-            allepisode: "/api/vigloo/allepisode",
-            stream: "/api/vigloo/stream"
-        }
-    },
-    {
         id: "honey",
         name: "Honey Drama",
         badge: "Popular",
@@ -267,15 +275,17 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
     });
 }
 
-async function fetchUpstream(endpoint, params = {}) {
+async function fetchUpstreamWithFailover(endpoint, params = {}) {
     const q = new URLSearchParams(params).toString();
-    const url = `${UPSTREAM_BASE}${endpoint}${q ? '?' + q : ''}`;
-    
+    const queryStr = q ? '?' + q : '';
+
+    // 1. Try Primary Server (https://nunodrama.my.id)
     try {
+        const primaryUrl = `${PRIMARY_BASE}${endpoint}${queryStr}`;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 6500);
+        const timeout = setTimeout(() => controller.abort(), 4500);
         
-        const resp = await fetch(url, {
+        const resp = await fetch(primaryUrl, {
             headers: DEFAULT_HEADERS,
             signal: controller.signal
         });
@@ -285,6 +295,27 @@ async function fetchUpstream(endpoint, params = {}) {
             return await resp.json();
         }
     } catch (e) {}
+
+    // 2. Try Backup Server (https://redmi.nunodrama.my.id)
+    try {
+        const backupUrl = `${BACKUP_BASE}${endpoint}${queryStr}`;
+        const controller2 = new AbortController();
+        const timeout2 = setTimeout(() => controller2.abort(), 4500);
+        
+        const resp2 = await fetch(backupUrl, {
+            headers: {
+                "User-Agent": DEFAULT_HEADERS["User-Agent"],
+                "Referer": "https://redmi.nunodrama.my.id/"
+            },
+            signal: controller2.signal
+        });
+        clearTimeout(timeout2);
+
+        if (resp2.ok) {
+            return await resp2.json();
+        }
+    } catch (e) {}
+
     return null;
 }
 
@@ -316,7 +347,7 @@ function normalizeCard(item, platformId) {
     
     const dramaId = String(
         item.bookId || item.book_id || item.id || item.vid ||
-        item.vod_id || item.drama_id || item.dramaId || item.subject_id || item.movieId || ""
+        item.vod_id || item.drama_id || item.dramaId || item.shortPlayId || item.subject_id || item.movieId || ""
     );
     
     const title = (
@@ -326,7 +357,7 @@ function normalizeCard(item, platformId) {
     );
     
     let cover = (
-        item.cover || item.cover_url || item.image || item.thumb ||
+        item.cover || item.cover_url || item.coverWap || item.image || item.thumb ||
         item.poster || item.img || item.img_landscape_url || item.vod_pic ||
         item.horizontal_cover || item.vertical_cover || ""
     );
@@ -335,16 +366,16 @@ function normalizeCard(item, platformId) {
     }
     
     const desc = (
-        item.description || item.synopsis || item.intro ||
+        item.description || item.synopsis || item.intro || item.introduction ||
         item.summary || item.brief || ""
     );
     
     const episodes = (
-        item.chapterCount || item.total_episode || item.jumlah_episode || item.episode_final ||
-        item.num_videos || item.episodes_count || item.total_chapter || item.episode_num || item.total || null
+        item.chapterCount || item.total_episode || item.totalEpisodes || item.jumlah_episode || item.episode_final ||
+        item.num_videos || item.episodes_count || item.total_chapter || item.episode || item.episode_num || item.total || null
     );
     
-    let tags = item.tagList || item.genres || item.genre || item.labels || item.tags || item.categories || item.category || [];
+    let tags = item.tagList || item.genres || item.genre || item.labels || item.label || item.tags || item.categories || item.category || [];
     if (typeof tags === "string") {
         try {
             const parsed = JSON.parse(tags);
@@ -396,6 +427,8 @@ export async function onRequest(context) {
     if (pathString === "platforms") {
         return jsonResponse({
             success: true,
+            primary_server: PRIMARY_BASE,
+            backup_server: BACKUP_BASE,
             platforms: PLATFORMS_CONFIG.map(p => ({
                 id: p.id,
                 name: p.name,
@@ -407,7 +440,7 @@ export async function onRequest(context) {
 
     // 2. Route: /api/ping
     if (pathString === "ping") {
-        return jsonResponse({ status: "ok", time: Date.now() });
+        return jsonResponse({ status: "ok", primary: PRIMARY_BASE, backup: BACKUP_BASE, time: Date.now() });
     }
 
     // 3. Route: /api/browse
@@ -420,7 +453,7 @@ export async function onRequest(context) {
         if (platform !== "all" && PLATFORM_MAP[platform]) {
             targetPlatforms = [platform];
         } else {
-            targetPlatforms = ["sodareels", "dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "minishort", "goodshort", "shorten", "vigloo", "honey", "dotdrama", "soreel", "fundrama", "bibishort"];
+            targetPlatforms = ["sodareels", "dramawave", "dramabox", "shortmax", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "minishort", "goodshort", "shorten", "honey", "dotdrama", "soreel", "fundrama", "bibishort"];
         }
 
         const promises = targetPlatforms.map(async (pId) => {
@@ -435,7 +468,7 @@ export async function onRequest(context) {
                 pParams.limit = 18;
             }
 
-            const data = await fetchUpstream(ep, pParams);
+            const data = await fetchUpstreamWithFailover(ep, pParams);
             const rawItems = extractList(data);
             return rawItems.map(item => normalizeCard(item, pId));
         });
@@ -527,29 +560,57 @@ export async function onRequest(context) {
         }
     }
 
-    // 5. Fallback: Direct proxy for any other API route
-    const targetUrl = `${UPSTREAM_BASE}/api/${pathString}${url.search}`;
+    // 5. Direct proxy with primary -> backup failover
+    const primaryTargetUrl = `${PRIMARY_BASE}/api/${pathString}${url.search}`;
     const directHeaders = new Headers(request.headers);
     directHeaders.set("User-Agent", DEFAULT_HEADERS["User-Agent"]);
-    directHeaders.set("Referer", UPSTREAM_BASE + "/");
+    directHeaders.set("Authorization", `Bearer ${API_TOKEN}`);
+    directHeaders.set("x-api-token", API_TOKEN);
+    directHeaders.set("Referer", PRIMARY_BASE + "/");
     directHeaders.delete("host");
 
     try {
-        const response = await fetch(targetUrl, {
+        const response = await fetch(primaryTargetUrl, {
             method: request.method,
             headers: directHeaders,
             redirect: "follow"
         });
 
-        const responseHeaders = new Headers(response.headers);
-        responseHeaders.set("Access-Control-Allow-Origin", "*");
-        responseHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
-        responseHeaders.set("Access-Control-Allow-Headers", "*");
+        if (response.ok) {
+            const responseHeaders = new Headers(response.headers);
+            responseHeaders.set("Access-Control-Allow-Origin", "*");
+            responseHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
+            responseHeaders.set("Access-Control-Allow-Headers", "*");
 
-        return new Response(response.body, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: responseHeaders
+            return new Response(response.body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: responseHeaders
+            });
+        }
+    } catch (err) {}
+
+    // Fallback to backup server
+    const backupTargetUrl = `${BACKUP_BASE}/api/${pathString}${url.search}`;
+    try {
+        const backupResp = await fetch(backupTargetUrl, {
+            method: request.method,
+            headers: {
+                "User-Agent": DEFAULT_HEADERS["User-Agent"],
+                "Referer": BACKUP_BASE + "/"
+            },
+            redirect: "follow"
+        });
+
+        const bHeaders = new Headers(backupResp.headers);
+        bHeaders.set("Access-Control-Allow-Origin", "*");
+        bHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
+        bHeaders.set("Access-Control-Allow-Headers", "*");
+
+        return new Response(backupResp.body, {
+            status: backupResp.status,
+            statusText: backupResp.statusText,
+            headers: bHeaders
         });
     } catch (err) {
         return jsonResponse({ success: false, error: err.message }, 502);
