@@ -636,24 +636,38 @@ function updateSectionTitle() {
     elements.sectionTitle.textContent = title;
 }
 
-// Data Normalization & Extraction
+// Data Normalization & Extraction (Supports Encrypted Nested Payloads & All Schema Formats)
 function extractList(data) {
     if (!data) return [];
+    if (typeof data === 'string' && data.startsWith('U2FsdGVk')) {
+        data = decryptNunoData(data);
+    }
     if (Array.isArray(data)) return data;
-    if (typeof data === "object") {
-        if (data.data && typeof data.data === "object") {
-            if (Array.isArray(data.data)) return data.data;
-            if (Array.isArray(data.data.episodes)) return data.data.episodes;
+    if (typeof data === 'object' && data !== null) {
+        if (typeof data.data === 'string' && data.data.startsWith('U2FsdGVk')) {
+            data.data = decryptNunoData(data.data);
+        }
+        if (Array.isArray(data.data)) return data.data;
+
+        if (data.data && typeof data.data === 'object') {
+            if (Array.isArray(data.data.data)) return data.data.data;
             if (Array.isArray(data.data.list)) return data.data.list;
             if (Array.isArray(data.data.items)) return data.data.items;
+            if (Array.isArray(data.data.records)) return data.data.records;
+            if (Array.isArray(data.data.episodes)) return data.data.episodes;
+            if (Array.isArray(data.data.books)) return data.data.books;
         }
-        for (const key of ["books", "data", "list", "items", "dramas", "results", "dataList", "programList", "vod_list", "episodes", "chapterList"]) {
+
+        for (const key of ['books', 'data', 'list', 'items', 'records', 'dramas', 'results', 'dataList', 'programList', 'vod_list', 'episodes', 'chapterList', 'categories', 'lists']) {
             if (Array.isArray(data[key]) && data[key].length > 0) {
                 return data[key];
-            } else if (data[key] && typeof data[key] === "object" && Array.isArray(data[key].list)) {
-                return data[key].list;
-            } else if (data[key] && typeof data[key] === "object" && Array.isArray(data[key].episodes)) {
-                return data[key].episodes;
+            } else if (data[key] && typeof data[key] === 'object') {
+                if (Array.isArray(data[key].data)) return data[key].data;
+                if (Array.isArray(data[key].list)) return data[key].list;
+                if (Array.isArray(data[key].items)) return data[key].items;
+                if (Array.isArray(data[key].records)) return data[key].records;
+                if (Array.isArray(data[key].episodes)) return data[key].episodes;
+                if (Array.isArray(data[key].books)) return data[key].books;
             }
         }
     }
