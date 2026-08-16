@@ -192,11 +192,11 @@ export async function onRequest(context) {
         } catch (err) {}
     }
 
-    // Backup Server Proxy with generous timeout (12 seconds)
+    // Backup Server Proxy with generous timeout (25 seconds for heavy payloads like SodaReels)
     const backupTargetUrl = `${BACKUP_BASE}/api/${pathString}${url.search}`;
     try {
         const controller2 = new AbortController();
-        const timeout2 = setTimeout(() => controller2.abort(), 12000);
+        const timeout2 = setTimeout(() => controller2.abort(), 25000);
 
         const backupResp = await fetch(backupTargetUrl, {
             method: request.method,

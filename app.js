@@ -774,7 +774,7 @@ async function apiFetch(endpoint, params = {}) {
     try {
         const edgeUrl = `${endpoint}${queryStr}`;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 12000);
+        const timeout = setTimeout(() => controller.abort(), 25000);
 
         const resp = await fetch(edgeUrl, {
             headers: { 'Accept': 'application/json, text/plain, */*' },
@@ -803,7 +803,7 @@ async function apiFetch(endpoint, params = {}) {
     try {
         const backupUrl = `${BACKUP_API}${endpoint}${queryStr}`;
         const controller2 = new AbortController();
-        const timeout2 = setTimeout(() => controller2.abort(), 12000);
+        const timeout2 = setTimeout(() => controller2.abort(), 25000);
 
         const bResp = await fetch(backupUrl, {
             mode: 'cors',
