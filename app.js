@@ -856,38 +856,48 @@ async function loadDramas() {
     let loadedCards = [];
     let hasRenderedAny = false;
 
-    const promises = targetPlatforms.map(async (pId) => {
-        const pCfg = PLATFORM_MAP[pId];
-        if (!pCfg) return [];
-        const eps = pCfg.endpoints || {};
-        const ep = eps[STATE.currentCategory] || eps.foryou || Object.values(eps)[0];
-        if (!ep) return [];
+    for (let i = 0; i < targetPlatforms.length; i += 4) {
+        const chunk = targetPlatforms.slice(i, i + 4);
+        const promises = chunk.map(async (pId) => {
+            const pCfg = PLATFORM_MAP[pId];
+            if (!pCfg) return [];
+            const eps = pCfg.endpoints || {};
+            const ep = eps[STATE.currentCategory] || eps.foryou || Object.values(eps)[0];
+            if (!ep) return [];
 
-        const pParams = { page: 1 };
-        if (ep.includes("limit") || ep.includes("drama") || ep.includes("donghua")) {
-            pParams.limit = 18;
-        }
-
-        try {
-            const data = await apiFetch(ep, pParams);
-            const rawItems = extractList(data);
-            const cards = rawItems.map(item => normalizeCard(item, pId));
-            if (cards.length > 0) {
-                loadedCards.push(...cards);
-                STATE.dramas = loadedCards;
-                renderPaginatedView();
-                if (!hasRenderedAny) {
-                    hasRenderedAny = true;
-                    setHero(cards[0]);
-                }
+            const pParams = { page: 1 };
+            if (ep.includes("limit") || ep.includes("drama") || ep.includes("donghua")) {
+                pParams.limit = 18;
             }
-            return cards;
-        } catch (e) {
-            return [];
-        }
-    });
 
-    await Promise.allSettled(promises);
+            try {
+                const data = await apiFetch(ep, pParams);
+                const rawItems = extractList(data);
+                return rawItems.map(item => normalizeCard(item, pId));
+            } catch (e) {
+                return [];
+            }
+        });
+
+        const settled = await Promise.allSettled(promises);
+        let newCards = [];
+        for (const res of settled) {
+            if (res.status === "fulfilled" && res.value.length > 0) {
+                newCards.push(...res.value);
+            }
+        }
+
+        if (newCards.length > 0) {
+            loadedCards.push(...newCards);
+            STATE.dramas = loadedCards;
+            
+            if (!hasRenderedAny) {
+                hasRenderedAny = true;
+                setHero(loadedCards[0]);
+            }
+            renderPaginatedView();
+        }
+    }
 
     if (loadedCards.length === 0) {
         elements.dramaGrid.innerHTML = `
@@ -896,8 +906,6 @@ async function loadDramas() {
             </div>
         `;
         if (elements.paginationContainer) elements.paginationContainer.innerHTML = '';
-    } else {
-        renderPaginatedView();
     }
 }
 
@@ -921,26 +929,33 @@ async function performSearch(keyword) {
     }
 
     try {
-        const promises = targetPlatforms.map(async (pId) => {
-            const pCfg = PLATFORM_MAP[pId];
-            if (!pCfg || !pCfg.endpoints || !pCfg.endpoints.search) return [];
-            const data = await apiFetch(pCfg.endpoints.search, { keyword, page: 1 });
-            const rawItems = extractList(data);
-            return rawItems.map(item => normalizeCard(item, pId));
-        });
-
-        const settled = await Promise.allSettled(promises);
         let allCards = [];
-        for (const res of settled) {
-            if (res.status === "fulfilled" && Array.isArray(res.value)) {
-                allCards.push(...res.value);
+        for (let i = 0; i < targetPlatforms.length; i += 4) {
+            const chunk = targetPlatforms.slice(i, i + 4);
+            const promises = chunk.map(async (pId) => {
+                const pCfg = PLATFORM_MAP[pId];
+                if (!pCfg || !pCfg.endpoints || !pCfg.endpoints.search) return [];
+                const data = await apiFetch(pCfg.endpoints.search, { keyword, page: 1 });
+                const rawItems = extractList(data);
+                return rawItems.map(item => normalizeCard(item, pId));
+            });
+
+            const settled = await Promise.allSettled(promises);
+            let chunkCards = [];
+            for (const res of settled) {
+                if (res.status === "fulfilled" && Array.isArray(res.value) && res.value.length > 0) {
+                    chunkCards.push(...res.value);
+                }
+            }
+
+            if (chunkCards.length > 0) {
+                allCards.push(...chunkCards);
+                STATE.dramas = allCards;
+                renderPaginatedView();
             }
         }
 
-        if (allCards.length > 0) {
-            STATE.dramas = allCards;
-            renderPaginatedView();
-        } else {
+        if (allCards.length === 0) {
             elements.dramaGrid.innerHTML = `
                 <div class="grid-empty">
                     <p>Tidak ada judul drama yang cocok dengan "${safeKeyword}".</p>
