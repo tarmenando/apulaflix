@@ -8,6 +8,20 @@ const DEFAULT_POSTER = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/20
 
 const PLATFORMS_CONFIG = [
     {
+        id: "sodareels",
+        name: "SodaReels",
+        badge: "250+ Drama HD",
+        icon: "🥤",
+        endpoints: {
+            foryou: "/api/sodareels/foryou",
+            trending: "/api/sodareels/foryou",
+            search: "/api/sodareels/search",
+            detail: "/api/sodareels/detail",
+            allepisode: "/api/sodareels/allepisode",
+            stream: "/api/sodareels/stream"
+        }
+    },
+    {
         id: "dramawave",
         name: "DramaWave",
         badge: "Popular (HLS)",
@@ -88,6 +102,34 @@ const PLATFORMS_CONFIG = [
         }
     },
     {
+        id: "mydrama",
+        name: "MyDrama",
+        badge: "Romance (HLS)",
+        icon: "💖",
+        endpoints: {
+            foryou: "/api/mydrama/foryou",
+            trending: "/api/mydrama/foryou",
+            search: "/api/mydrama/search",
+            detail: "/api/mydrama/detail",
+            allepisode: "/api/mydrama/allepisode",
+            stream: "/api/mydrama/stream"
+        }
+    },
+    {
+        id: "minishort",
+        name: "MiniShort",
+        badge: "Mini Series (HLS)",
+        icon: "📺",
+        endpoints: {
+            foryou: "/api/minishort/foryou",
+            trending: "/api/minishort/foryou",
+            search: "/api/minishort/search",
+            detail: "/api/minishort/detail",
+            allepisode: "/api/minishort/allepisode",
+            stream: "/api/minishort/stream"
+        }
+    },
+    {
         id: "goodshort",
         name: "GoodShort",
         badge: "Top Picks",
@@ -99,6 +141,20 @@ const PLATFORMS_CONFIG = [
             detail: "/api/goodshort/detail",
             allepisode: "/api/goodshort/allepisode",
             stream: "/api/goodshort/stream"
+        }
+    },
+    {
+        id: "shorten",
+        name: "ShortEn",
+        badge: "Viral Shorts",
+        icon: "🔥",
+        endpoints: {
+            foryou: "/api/shorten/foryou",
+            trending: "/api/shorten/trending",
+            search: "/api/shorten/search",
+            detail: "/api/shorten/detail",
+            allepisode: "/api/shorten/allepisode",
+            stream: "/api/shorten/stream"
         }
     },
     {
@@ -127,6 +183,34 @@ const PLATFORMS_CONFIG = [
             detail: "/api/honey/detail",
             allepisode: "/api/honey/allepisode",
             stream: "/api/honey/stream"
+        }
+    },
+    {
+        id: "dotdrama",
+        name: "DotDrama",
+        badge: "HD Series",
+        icon: "✨",
+        endpoints: {
+            foryou: "/api/dotdrama/foryou",
+            trending: "/api/dotdrama/foryou",
+            search: "/api/dotdrama/search",
+            detail: "/api/dotdrama/detail",
+            allepisode: "/api/dotdrama/allepisode",
+            stream: "/api/dotdrama/stream"
+        }
+    },
+    {
+        id: "soreel",
+        name: "SoReel",
+        badge: "Short Romance",
+        icon: "🌹",
+        endpoints: {
+            foryou: "/api/soreel/foryou",
+            trending: "/api/soreel/ranking",
+            search: "/api/soreel/search",
+            detail: "/api/soreel/detail",
+            allepisode: "/api/soreel/allepisode",
+            stream: "/api/soreel/stream"
         }
     },
     {
@@ -599,7 +683,7 @@ async function loadDramas() {
     if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
         targetPlatforms = [STATE.currentPlatform];
     } else {
-        targetPlatforms = ["dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "goodshort", "vigloo", "honey", "fundrama", "bibishort"];
+        targetPlatforms = ["sodareels", "dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "minishort", "goodshort", "shorten", "vigloo", "honey", "dotdrama", "soreel", "fundrama", "bibishort"];
     }
 
     try {
@@ -666,7 +750,7 @@ async function performSearch(keyword) {
     if (STATE.currentPlatform !== 'all' && PLATFORM_MAP[STATE.currentPlatform]) {
         targetPlatforms = [STATE.currentPlatform];
     } else {
-        targetPlatforms = ["dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "goodshort", "honey", "fundrama"];
+        targetPlatforms = ["sodareels", "dramawave", "dramabox", "lookseries", "donghuaqueen", "dramaqueen", "mydrama", "goodshort", "honey", "dotdrama"];
     }
 
     try {
@@ -872,7 +956,7 @@ async function playEpisode(episodeNum, forceProxy = false) {
     const epObj = STATE.activeEpisodesList.find(e => e.episode_num === episodeNum);
     const epId = epObj ? epObj.episode_id : String(episodeNum);
     
-    // If we already have a direct link from allepisode (e.g. DonghuaQueen, DramaQueen)
+    // If we already have a direct link from allepisode
     if (epObj && epObj.direct_url && !forceProxy) {
         loadDirectVideo(epObj.direct_url);
         return;
@@ -898,8 +982,6 @@ async function playEpisode(episodeNum, forceProxy = false) {
         sParams = { book_id: drama.id, chapter_id: epId || String(episodeNum) };
     } else if (platform === "goodshort") {
         sParams = { book_id: drama.id, episode_index: episodeNum, episode_id: epId || String(episodeNum) };
-    } else if (["dramaqueen", "donghuaqueen", "fundrama"].includes(platform)) {
-        sParams = { book_id: drama.id, episode: episodeNum };
     } else {
         sParams = { book_id: drama.id, episode: episodeNum };
     }
